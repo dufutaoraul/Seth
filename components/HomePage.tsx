@@ -9,6 +9,7 @@ import { Sparkles, MessageCircle, Star } from 'lucide-react'
 
 export default function HomePage() {
   const [isLogin, setIsLogin] = useState(true)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -21,29 +22,109 @@ export default function HomePage() {
       return
     }
 
+    if (password.length < 6) {
+      toast.error('密码至少需要6位字符')
+      return
+    }
+
     setLoading(true)
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
-        if (error) throw error
-        toast.success('登录成功')
-        router.push('/chat')
+
+        if (error) {
+          console.error('Login error:', error)
+          if (error.message.includes('Invalid login credentials')) {
+            toast.error('邮箱或密码错误，请检查后重试')
+          } else if (error.message.includes('Email not confirmed')) {
+            toast.error('请先验证邮箱，检查您的邮件收件箱')
+          } else {
+            toast.error(error.message || '登录失败')
+          }
+          return
+        }
+
+        toast.success('登录成功，正在跳转...')
+        console.log('Login successful, user:', data.user?.id)
+
+        // 添加小延迟确保认证状态同步
+        setTimeout(() => {
+          window.location.href = '/chat-simple'
+        }, 1500)
       } else {
-        const { error } = await supabase.auth.signUp({
+        // 注册前先检查用户是否已存在
+        const { data: existingUser } = await supabase.auth.signInWithPassword({
+          email,
+          password: 'dummy', // 用于检测用户是否存在
+        })
+
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/chat`,
+            emailRedirectTo: `${window.location.origin}/chat-simple`,
           },
         })
-        if (error) throw error
-        toast.success('注册成功，请检查邮箱验证链接')
+
+        if (error) {
+          console.error('Signup error:', error)
+          if (error.message.includes('already registered')) {
+            toast.error('该邮箱已注册，请直接登录或使用忘记密码功能')
+            setIsLogin(true) // 切换到登录模式
+          } else if (error.message.includes('password')) {
+            toast.error('密码格式不正确，请使用至少6位字符的密码')
+          } else {
+            toast.error(error.message || '注册失败')
+          }
+          return
+        }
+
+        if (data.user && !data.user.email_confirmed_at) {
+          toast.success('注册成功！请检查邮箱验证链接完成注册')
+        } else {
+          toast.success('注册成功！')
+          setTimeout(() => {
+            window.location.href = '/chat-simple'
+          }, 1500)
+        }
       }
     } catch (error: any) {
+      console.error('Auth error:', error)
+      toast.error(error.message || '操作失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) {
+      toast.error('请输入邮箱地址')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+
+      if (error) {
+        console.error('Password reset error:', error)
+        toast.error(error.message || '发送重置邮件失败')
+        return
+      }
+
+      toast.success('密码重置邮件已发送，请检查您的邮箱')
+      setIsForgotPassword(false)
+      setIsLogin(true)
+    } catch (error: any) {
+      console.error('Password reset error:', error)
       toast.error(error.message || '操作失败')
     } finally {
       setLoading(false)
@@ -105,55 +186,105 @@ export default function HomePage() {
         >
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold mb-2">
-              {isLogin ? '欢迎回来' : '开始你的探索之旅'}
+              {isForgotPassword ? '重置密码' : (isLogin ? '欢迎回来' : '开始你的探索之旅')}
             </h2>
             <p className="text-gray-400">
-              {isLogin ? '登录继续与赛斯对话' : '注册开启智慧之门'}
+              {isForgotPassword
+                ? '输入邮箱地址，我们将发送重置链接'
+                : (isLogin ? '登录继续与赛斯对话' : '注册开启智慧之门')}
             </p>
           </div>
 
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">邮箱地址</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-field"
-                placeholder="请输入邮箱地址"
-                required
-              />
-            </div>
+          {isForgotPassword ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">邮箱地址</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-field"
+                  placeholder="请输入注册时使用的邮箱地址"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">密码</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-field"
-                placeholder="请输入密码"
-                required
-              />
-            </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? '发送中...' : '发送重置邮件'}
+              </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '处理中...' : (isLogin ? '登录' : '注册')}
-            </button>
-          </form>
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(false)}
+                  className="text-seth-gold hover:text-yellow-400 transition-colors"
+                >
+                  返回登录
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <form onSubmit={handleAuth} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">邮箱地址</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input-field"
+                    placeholder="请输入邮箱地址"
+                    required
+                  />
+                </div>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-seth-gold hover:text-yellow-400 transition-colors"
-            >
-              {isLogin ? '还没有账号？立即注册' : '已有账号？立即登录'}
-            </button>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">密码</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field"
+                    placeholder={isLogin ? "请输入密码" : "请输入密码（至少6位字符）"}
+                    required
+                  />
+                </div>
+
+                {isLogin && (
+                  <div className="text-right">
+                    <button
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-sm text-seth-orange hover:text-orange-400 transition-colors"
+                    >
+                      忘记密码？
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? '处理中...' : (isLogin ? '登录' : '注册')}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-seth-gold hover:text-yellow-400 transition-colors"
+                >
+                  {isLogin ? '还没有账号？立即注册' : '已有账号？立即登录'}
+                </button>
+              </div>
+            </>
+          )}
 
           {/* 会员等级预览 */}
           <div className="mt-8 p-4 bg-gray-900/50 rounded-xl">
