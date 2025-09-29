@@ -1,12 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
-import { verifyNotifySign } from '@/lib/zpay'
 
 // 强制动态路由
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    // 环境变量检查
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const zpayKey = process.env.ZPAY_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey || !zpayKey) {
+      console.error('缺少必要的环境变量')
+      return new Response('fail', { status: 500 })
+    }
+
+    // 动态导入，避免构建时错误
+    const { createClient } = await import('@supabase/supabase-js')
+    const { createHash } = await import('crypto')
+
+    // 创建 supabase 管理员客户端
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+
     // 获取ZPay回调参数
     const formData = await request.formData()
     const params: Record<string, any> = {}
@@ -18,6 +38,36 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('ZPay回调参数:', params)
+
+    // 本地验证签名函数
+    const verifyNotifySign = (params: Record<string, any>): boolean => {
+      const { sign, ...otherParams } = params
+
+      // 参数排序并生成待签名字符串
+      const sortedParams: [string, any][] = []
+
+      for (const key in otherParams) {
+        if (!otherParams[key] || key === 'sign' || key === 'sign_type') {
+          continue
+        }
+        sortedParams.push([key, otherParams[key]])
+      }
+
+      sortedParams.sort((a, b) => a[0].localeCompare(b[0]))
+
+      let prestr = ''
+      for (let i = 0; i < sortedParams.length; i++) {
+        const [key, value] = sortedParams[i]
+        if (i === sortedParams.length - 1) {
+          prestr += `${key}=${value}`
+        } else {
+          prestr += `${key}=${value}&`
+        }
+      }
+
+      const expectedSign = createHash('md5').update(prestr + zpayKey, 'utf8').digest('hex')
+      return sign === expectedSign
+    }
 
     // 验证签名
     if (!verifyNotifySign(params)) {
