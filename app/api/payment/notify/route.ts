@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyNotifySign } from '@/lib/zpay'
 
+// 强制动态路由
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // 获取ZPay回调参数

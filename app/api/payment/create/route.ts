@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createPaymentUrl, generateOrderNo, MEMBERSHIP_PLANS, MembershipType } from '@/lib/zpay'
 
+// 强制动态路由
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const { membershipType, paymentMethod = 'alipay' } = await request.json()
