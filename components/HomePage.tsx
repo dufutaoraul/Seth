@@ -53,7 +53,7 @@ export default function HomePage() {
 
         // 添加小延迟确保认证状态同步
         setTimeout(() => {
-          window.location.href = '/chat-simple'
+          window.location.href = '/chat-test'
         }, 1500)
       } else {
         // 注册前先检查用户是否已存在
