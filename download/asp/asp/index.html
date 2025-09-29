@@ -1,0 +1,52 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>7支付演示页面</title>
+</head>
+<body>
+	<div style="margin: 20px auto;width: 500px">
+		<h3>7支付演示DEMO</h3>
+<form action="payapi.asp" method="post">
+	<p>商品名称：<input type="text" name="body" value="IPhone xs max"></p>
+	<p>商品备注：<input type="text" name="remark" value="金色 256G"></p>
+	<p>收款金额：<input type="text" name="fee" value="0.1" id="fee">元</p>
+	<p>订单编号：<input type="text" name="no" value="" id="no"></p>
+	<p>支付方式：<select name="pay_type">
+		<option value="alipay">支付宝</option>
+		<option value="wxpay">微信支付</option>
+	</select></p>
+	<button type="submit">支付</button>
+</form>
+</div>
+<script>
+function randomNum(minNum,maxNum){ 
+		    	switch(arguments.length){ 
+		        case 1: 
+		            return parseInt(Math.random()*minNum+1,10); 
+		        break; 
+		        case 2: 
+		            return parseInt(Math.random()*(maxNum-minNum+1)+minNum,10); 
+		        break; 
+		            default: 
+		                return 0; 
+		            break; 
+		        } 
+} 
+
+function randomNumber() {
+    var todayDate=new Date();
+    var year=todayDate.getFullYear();
+    var date=todayDate.getDate();
+    var month=todayDate.getMonth()+1;
+    var hour=todayDate.getHours();
+    var mininutes=todayDate.getMinutes();
+    var seconds=todayDate.getSeconds();
+    var ran=Math.round((Math.random())*10000);
+    return (year+""+month+""+""+date+""+hour+""+""+mininutes+""+seconds+""+""+ran);
+   }
+
+document.getElementById("fee").value=randomNum(1,100)/100;
+document.getElementById("no").value=randomNumber()+""+randomNum(11111,99999);
+</script>
+</body>
+</html>

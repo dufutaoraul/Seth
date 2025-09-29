@@ -1,0 +1,26 @@
+你看一下，现在我们是在一个空的文件夹里，里面只有一个payment-system和一个download的文件夹，是给你参考用的，不要对这两个文件夹进行任何操作，只是参考。
+
+我需要做的是一个简单的网站，叫做“与赛斯对话”，就是简单的AI对话界面，AI的功能是调用dify工作流，dify的服务器地址是：https://pro.aifunbox.com/v1，密钥是：app-vTrBI2ESrLtgALCUzn2Pw70n。
+
+与用户的聊天记录，需要记录到supabase里，方便用户随时可以查阅。
+
+由于调用国外大模型价格很昂贵，所以免费用户每个月只能发15条对话信息，对应15个积分。标准会员能够每个月有150个积分，对应150此对话，售价是145元。高级会员是一个月360元，有500个积分也就是500次对话。
+
+以上是最基本的诉求，将来可能会做拓展，暂时先跑通最基本的需求，特别需要注意的就是付费这部分。
+
+payment-system的文件夹里的代码目前刚刚实现了最简单的支付功能和登陆功能，请你借鉴过来，但这个文件夹里面也没做完整，也是有很多功能还没有实现的，所以需要你再次学习参考官方文档。
+zpay的官方有提供开发文档的demo，有以下“PHP版、JAVA版、NODE版、PYTHON版、C++版、ASP版”这些版本，不知道你需要哪种？我都下载了对应的压缩包，解压缩到了download文件夹，看看这样可以吗？你需要用哪个？你可以边用边给我通俗的解释说明一下。
+官方的开发文档我也截图到了download文件夹里，是1.png、2.png、3.png这三张图片。
+我的zpay相关信息如下：
+网关：https://zpayz.cn/
+商户ID（PID）：2025081617254223
+商户密钥（KEY）：DdKyMklWlUZqk2uw4uXaPdKSZdXGlGl9
+
+用户登陆、支付、聊天、等等相关所有记录我都想存储在supabase上，我新建了一个新的supabase的表，地址是：https://eebpbpngltddbyddyfyt.supabase.co，
+anon public key是：eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlYnBicG5nbHRkZGJ5ZGR5Znl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxMDkxNTIsImV4cCI6MjA3NDY4NTE1Mn0.jTIvhCh2p_o4LWljwn7CY82_iZoBH-Q-L5c2GJuU8q0
+service_rolesecret key是：eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlYnBicG5nbHRkZGJ5ZGR5Znl0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTEwOTE1MiwiZXhwIjoyMDc0Njg1MTUyfQ.xQ2Tiyuhavc6BHP1p6IH9EzG_Qb2agqADEN97TbJnEM
+用户登陆我就用supabase自带的邮件登陆功能，但是怎么设置你需要告诉我。
+我是纯小白，请你指导我，这些商品，这些用户，这些付款记录、登陆情况、聊天记录，付款方式时间等等，怎么才能有条不紊的记录清楚方便调用，supabase该怎么设置，请你教我一步步操作，表格该怎么创建，请你写SQL脚本给我一键复制粘贴。
+总之，希望你帮我实现这个网站能够正常调用dify工作流能对话，同时超过15条之后，就无法对话，必须付费。付费解锁一个月，那一个月之后又是只有15条，以此类推，对应的逻辑该怎么设计，还有哪些信息是必须要我提供给你的呢？
+我想要的这个网站的功能我们已经有小程序了。
+截图在download文件夹里，是1.jpg、2.jpg、3.jpg这三张图片。你看看，大体颜色风格外观可以按这个设计，底色可以更黑一点，背景可以加入繁星闪烁的效果，最好比这个效果更炫酷好看一点。

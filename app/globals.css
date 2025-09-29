@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-seth-dark text-white font-sans;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(255, 140, 66, 0.1) 0%, transparent 50%);
+  }
+}
+
+@layer components {
+  .star {
+    @apply absolute bg-white rounded-full animate-twinkle;
+  }
+
+  .star-1 {
+    width: 1px;
+    height: 1px;
+    animation-delay: 0s;
+  }
+
+  .star-2 {
+    width: 2px;
+    height: 2px;
+    animation-delay: 0.5s;
+  }
+
+  .star-3 {
+    width: 1px;
+    height: 1px;
+    animation-delay: 1s;
+  }
+
+  .chat-bubble-user {
+    @apply bg-seth-gold text-seth-dark px-4 py-2 rounded-2xl rounded-br-sm max-w-xs ml-auto;
+  }
+
+  .chat-bubble-assistant {
+    @apply bg-gray-700 text-white px-4 py-2 rounded-2xl rounded-bl-sm max-w-xs mr-auto;
+  }
+
+  .btn-primary {
+    @apply bg-seth-gold hover:bg-yellow-500 text-seth-dark font-semibold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105;
+  }
+
+  .btn-secondary {
+    @apply bg-seth-orange hover:bg-orange-500 text-white font-semibold py-3 px-6 rounded-full transition-all duration-300 transform hover:scale-105;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:border-seth-gold focus:outline-none transition-colors;
+  }
+}
+
+/* 星空背景 */
+.starry-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 渐变遮罩 */
+.gradient-overlay {
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(15, 15, 35, 0.98) 100%);
+}
