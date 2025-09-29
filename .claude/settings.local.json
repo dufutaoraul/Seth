@@ -12,7 +12,8 @@
       "Bash(node:*)",
       "Bash(npm install:*)",
       "Bash(pkill:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
