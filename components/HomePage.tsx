@@ -306,11 +306,11 @@ export default function HomePage() {
               </div>
               <div className="flex justify-between">
                 <span>标准会员</span>
-                <span className="text-seth-orange">150次对话/月 ¥145</span>
+                <span className="text-seth-orange">150次对话/月 ¥1</span>
               </div>
               <div className="flex justify-between">
                 <span>高级会员</span>
-                <span className="text-green-400">500次对话/月 ¥360</span>
+                <span className="text-green-400">500次对话/月 ¥2</span>
               </div>
             </div>
           </div>

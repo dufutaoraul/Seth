@@ -99,11 +99,11 @@ export function verifyNotifySign(params: Record<string, any>): boolean {
   return sign === expectedSign
 }
 
-// 会员套餐配置
+// 会员套餐配置 (测试价格)
 export const MEMBERSHIP_PLANS = {
   '免费用户': { credits: 15, price: 0 },
-  '标准会员': { credits: 150, price: 145 },
-  '高级会员': { credits: 500, price: 360 },
+  '标准会员': { credits: 150, price: 1 },    // 测试价格 1元
+  '高级会员': { credits: 500, price: 2 },    // 测试价格 2元
 } as const
 
 export type MembershipType = keyof typeof MEMBERSHIP_PLANS
