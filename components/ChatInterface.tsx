@@ -56,25 +56,16 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     setMessages(data || [])
   }
 
-  // 创建新会话
+  // 创建新会话（简化版，不使用数据库）
   const createNewSession = async () => {
-    const { data, error } = await supabase
-      .from('chat_sessions')
-      .insert([
-        {
-          user_id: user.id,
-          title: '新对话',
-        },
-      ])
-      .select()
-      .single()
-
-    if (error) {
-      toast.error('创建会话失败')
-      return
+    const newSession: ChatSession = {
+      id: `session-${Date.now()}`,
+      user_id: user.id,
+      title: '新对话',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }
 
-    const newSession = data as ChatSession
     setSessions([newSession, ...sessions])
     setCurrentSession(newSession)
     setMessages([])
@@ -99,26 +90,17 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       return
     }
 
-    // 如果没有当前会话，创建一个
+    // 如果没有当前会话，创建一个简单的临时会话
     let sessionToUse = currentSession
     if (!sessionToUse) {
-      await createNewSession()
-      // 获取最新创建的会话
-      const { data } = await supabase
-        .from('chat_sessions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (data) {
-        sessionToUse = data as ChatSession
-        setCurrentSession(sessionToUse)
-      } else {
-        toast.error('创建会话失败')
-        return
+      sessionToUse = {
+        id: `session-${Date.now()}`,
+        user_id: user.id,
+        title: '新对话',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }
+      setCurrentSession(sessionToUse)
     }
 
     const userMessage = inputMessage
@@ -138,15 +120,22 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     setMessages(prev => [...prev, tempUserMessage])
 
     try {
-      // 调用聊天API
-      const response = await fetch('/api/chat', {
+      // 获取当前用户的访问令牌
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        toast.error('认证过期，请重新登录')
+        return
+      }
+
+      // 调用简化版聊天API
+      const response = await fetch('/api/chat-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           message: userMessage,
-          sessionId: sessionToUse.id,
           conversationId: messages.find(m => m.dify_conversation_id)?.dify_conversation_id,
         }),
       })
@@ -164,21 +153,21 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         data.assistantMessage,
       ])
 
-      // 更新积分
-      setCredits(data.updatedCredits)
+      // 简化版暂时不更新积分
+      // setCredits(data.updatedCredits)
 
-      // 更新会话标题（如果是第一条消息）
-      if (messages.length === 0) {
-        const title = userMessage.slice(0, 20) + (userMessage.length > 20 ? '...' : '')
-        await supabase
-          .from('chat_sessions')
-          .update({ title })
-          .eq('id', sessionToUse.id)
+      // 暂时注释掉会话标题更新（需要数据库）
+      // if (messages.length === 0) {
+      //   const title = userMessage.slice(0, 20) + (userMessage.length > 20 ? '...' : '')
+      //   await supabase
+      //     .from('chat_sessions')
+      //     .update({ title })
+      //     .eq('id', sessionToUse.id)
 
-        setSessions(prev =>
-          prev.map(s => (s.id === sessionToUse.id ? { ...s, title } : s))
-        )
-      }
+      //   setSessions(prev =>
+      //     prev.map(s => (s.id === sessionToUse.id ? { ...s, title } : s))
+      //   )
+      // }
     } catch (error: any) {
       toast.error(error.message || '发送失败')
       // 移除临时消息

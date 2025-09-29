@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { sendMessageToDify } from '@/lib/dify'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,15 +16,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createServerSupabaseClient()
+    // 从请求头获取授权信息
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '缺少授权头' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.substring(7) // 移除 'Bearer ' 前缀
+
+    // 创建 Supabase 客户端并设置会话
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
     // 验证用户身份
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser(token)
 
     if (authError || !user) {
+      console.error('Auth error:', authError)
       return NextResponse.json(
         { error: '未授权访问' },
         { status: 401 }
