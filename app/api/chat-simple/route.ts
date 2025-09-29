@@ -11,8 +11,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export async function POST(request: NextRequest) {
   try {
     console.log('=== Chat Simple API 调用开始 ===')
-    const { message, conversationId, sessionId } = await request.json()
-    console.log('请求参数:', { message, conversationId, sessionId })
+    const body = await request.json()
+    const { message, conversationId, sessionId } = body
+    console.log('完整请求体:', JSON.stringify(body, null, 2))
+    console.log('解析的参数:', { message, conversationId, sessionId })
 
     if (!message) {
       return NextResponse.json(
@@ -237,10 +239,20 @@ export async function POST(request: NextRequest) {
       conversationId: difyResponse.conversation_id,
       sessionId: actualSessionId,
     })
-  } catch (error) {
-    console.error('Chat API error:', error)
+  } catch (error: any) {
+    console.error('=== Chat API 详细错误信息 ===')
+    console.error('错误类型:', typeof error)
+    console.error('错误消息:', error?.message)
+    console.error('错误堆栈:', error?.stack)
+    console.error('完整错误对象:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    console.error('=== Chat API 错误信息结束 ===')
+
     return NextResponse.json(
-      { error: '服务器内部错误' },
+      {
+        error: '服务器内部错误',
+        details: error?.message,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     )
   }
