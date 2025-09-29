@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { createPaymentUrl, generateOrderNo, MEMBERSHIP_PLANS, MembershipType } from '@/lib/zpay'
 
 export async function POST(request: NextRequest) {
