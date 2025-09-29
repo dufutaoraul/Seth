@@ -45,6 +45,17 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     scrollToBottom()
   }, [messages])
 
+  // 初始化时加载最新积分
+  useEffect(() => {
+    const initializeCredits = async () => {
+      const updatedCredits = await loadUserCredits()
+      if (updatedCredits) {
+        setCredits(updatedCredits)
+      }
+    }
+    initializeCredits()
+  }, [])
+
   // 加载用户的聊天会话
   useEffect(() => {
     const loadUserSessions = async () => {
