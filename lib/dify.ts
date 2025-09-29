@@ -4,7 +4,9 @@ const DIFY_API_URL = process.env.DIFY_API_URL!
 const DIFY_API_KEY = process.env.DIFY_API_KEY!
 
 export interface DifyMessage {
+  inputs: Record<string, any>
   query: string
+  response_mode: string
   conversation_id?: string
   user: string
 }
@@ -24,13 +26,19 @@ export async function sendMessageToDify(
 ): Promise<DifyResponse> {
   try {
     const payload: DifyMessage = {
+      inputs: {
+        user: userId,
+      },
       query: message,
+      response_mode: 'blocking',
       user: userId,
     }
 
     if (conversationId) {
       payload.conversation_id = conversationId
     }
+
+    console.log('Dify API payload:', JSON.stringify(payload, null, 2))
 
     const response = await axios.post(
       `${DIFY_API_URL}/chat-messages`,

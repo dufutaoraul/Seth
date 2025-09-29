@@ -45,15 +45,91 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     scrollToBottom()
   }, [messages])
 
+  // 加载用户的聊天会话
+  useEffect(() => {
+    const loadUserSessions = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.access_token) {
+          return
+        }
+
+        const response = await fetch('/api/chat-history', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const sessionsList = data.sessions || []
+          setSessions(sessionsList)
+
+          // 如果没有当前会话但有会话列表，自动选择最新的会话
+          if (!currentSession && sessionsList.length > 0) {
+            const latestSession = sessionsList[0] // 已按时间排序
+            setCurrentSession(latestSession)
+            loadSessionMessages(latestSession.id)
+          }
+        }
+      } catch (error) {
+        console.error('加载聊天会话失败:', error)
+      }
+    }
+
+    loadUserSessions()
+  }, [user.id])
+
   // 加载会话消息
   const loadSessionMessages = async (sessionId: string) => {
-    const { data } = await supabase
-      .from('chat_messages')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true })
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        toast.error('认证过期，请重新登录')
+        return
+      }
 
-    setMessages(data || [])
+      const response = await fetch(`/api/chat-history?sessionId=${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('加载聊天历史失败')
+      }
+
+      const data = await response.json()
+      setMessages(data.messages || [])
+    } catch (error: any) {
+      console.error('加载聊天历史失败:', error)
+      toast.error(error.message || '加载聊天历史失败')
+      setMessages([])
+    }
+  }
+
+  // 加载用户积分
+  const loadUserCredits = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return null
+
+      const response = await fetch('/api/credits', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        return data.credits
+      }
+      return null
+    } catch (error) {
+      console.error('加载用户积分失败:', error)
+      return null
+    }
   }
 
   // 创建新会话（简化版，不使用数据库）
@@ -86,7 +162,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     // 检查积分
     if (!credits || credits.remaining_credits < 1) {
       toast.error('积分不足，请购买会员')
-      router.push('/membership')
+      router.push('/membership-client')
       return
     }
 
@@ -127,7 +203,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         return
       }
 
-      // 调用简化版聊天API
+      // 调用简化版聊天API（已添加数据库保存功能）
       const response = await fetch('/api/chat-simple', {
         method: 'POST',
         headers: {
@@ -136,6 +212,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         },
         body: JSON.stringify({
           message: userMessage,
+          sessionId: currentSession?.id,
           conversationId: messages.find(m => m.dify_conversation_id)?.dify_conversation_id,
         }),
       })
@@ -153,8 +230,24 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         data.assistantMessage,
       ])
 
-      // 简化版暂时不更新积分
-      // setCredits(data.updatedCredits)
+      // 刷新用户积分
+      const updatedCredits = await loadUserCredits()
+      if (updatedCredits) {
+        setCredits(updatedCredits)
+      }
+
+      // 如果创建了新会话，更新当前会话
+      if (data.sessionId && (!currentSession || currentSession.id !== data.sessionId)) {
+        const newSession = {
+          id: data.sessionId,
+          user_id: user.id,
+          title: userMessage.slice(0, 20) + (userMessage.length > 20 ? '...' : ''),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+        setCurrentSession(newSession)
+        setSessions(prev => [newSession, ...prev])
+      }
 
       // 暂时注释掉会话标题更新（需要数据库）
       // if (messages.length === 0) {
@@ -213,7 +306,12 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                   <span className="text-sm truncate">{user.email}</span>
                 </div>
                 <div className="text-sm text-gray-400">
-                  剩余积分: <span className="text-seth-gold">{credits?.remaining_credits || 0}</span>
+                  剩余积分: <button
+                    onClick={() => router.push('/membership-client')}
+                    className="text-seth-gold hover:text-yellow-300 transition-colors cursor-pointer"
+                  >
+                    {credits?.remaining_credits || 0}
+                  </button>
                 </div>
                 <div className="text-xs text-gray-500">
                   {credits?.current_membership || '免费用户'}
@@ -295,9 +393,12 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
               </h1>
             </div>
             <div className="hidden lg:flex items-center space-x-4">
-              <div className="text-sm text-gray-400">
-                积分: <span className="text-seth-gold">{credits?.remaining_credits || 0}</span>
-              </div>
+              <button
+                onClick={() => router.push('/membership-client')}
+                className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+              >
+                积分: <span className="text-seth-gold hover:text-yellow-300">{credits?.remaining_credits || 0}</span>
+              </button>
               <button
                 onClick={() => router.push('/membership')}
                 className="text-seth-orange hover:text-orange-400 transition-colors"
@@ -415,8 +516,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                 <Send className="w-5 h-5" />
               </button>
             </form>
-            <div className="text-xs text-gray-400 mt-2 flex justify-between">
-              <span>剩余 {credits?.remaining_credits || 0}/2000 字符</span>
+            <div className="text-xs text-gray-400 mt-2 text-center">
               <span>💡 尝试问问关于意识、现实和人生哲学的问题</span>
             </div>
           </div>

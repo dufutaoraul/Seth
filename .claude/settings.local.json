@@ -8,7 +8,11 @@
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
       "Bash(git push:*)",
-      "Read(//c/Users/杜富陶/Downloads/**)"
+      "Read(//c/Users/杜富陶/Downloads/**)",
+      "Bash(node:*)",
+      "Bash(npm install:*)",
+      "Bash(pkill:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

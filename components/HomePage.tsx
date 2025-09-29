@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
-import { Sparkles, MessageCircle, Star } from 'lucide-react'
+import { Sparkles, MessageCircle, Star, Eye, EyeOff } from 'lucide-react'
 
 export default function HomePage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -13,6 +13,7 @@ export default function HomePage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -244,14 +245,23 @@ export default function HomePage() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2">密码</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="input-field"
-                    placeholder={isLogin ? "请输入密码" : "请输入密码（至少6位字符）"}
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="input-field pr-10"
+                      placeholder={isLogin ? "请输入密码" : "请输入密码（至少6位字符）"}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                    >
+                      {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                    </button>
+                  </div>
                 </div>
 
                 {isLogin && (

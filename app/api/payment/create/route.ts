@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 import { createPaymentUrl, generateOrderNo, MEMBERSHIP_PLANS, MembershipType } from '@/lib/zpay'
 
 export async function POST(request: NextRequest) {
@@ -13,15 +13,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createServerSupabaseClient()
+    // 从请求头获取授权信息
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: '缺少授权头' },
+        { status: 401 }
+      )
+    }
+
+    const token = authHeader.substring(7)
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 
     // 验证用户身份
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await supabase.auth.getUser(token)
 
     if (authError || !user) {
+      console.error('Payment API Auth error:', authError)
       return NextResponse.json(
         { error: '未授权访问' },
         { status: 401 }
