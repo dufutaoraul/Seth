@@ -30,7 +30,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
   const router = useRouter()
 
   const handlePurchase = async (membershipType: MembershipType) => {
-    if (membershipType === '免费用户') return
+    if (membershipType === '普通会员') return
 
     setLoading(membershipType)
 
@@ -64,7 +64,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
 
   const getMembershipIcon = (type: MembershipType) => {
     switch (type) {
-      case '免费用户':
+      case '普通会员':
         return <Star className="w-8 h-8" />
       case '标准会员':
         return <Zap className="w-8 h-8" />
@@ -77,7 +77,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
 
   const getMembershipColor = (type: MembershipType) => {
     switch (type) {
-      case '免费用户':
+      case '普通会员':
         return 'border-gray-600 bg-gray-800/50'
       case '标准会员':
         return 'border-seth-orange bg-orange-900/20'
@@ -152,7 +152,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
             </div>
             <div className="text-center">
               <div className="text-lg font-semibold text-seth-orange mb-2">
-                {userCredits?.current_membership || '免费用户'}
+                {userCredits?.current_membership || '普通会员'}
               </div>
               <div className="text-gray-400">当前等级</div>
             </div>
@@ -204,30 +204,24 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
 
                     <h3 className="text-xl font-bold mb-2">{type}</h3>
 
-                    <div className="text-3xl font-bold mb-4">
-                      {plan.credits}
-                      <span className="text-lg text-gray-400">次对话</span>
-                    </div>
-
-                    {plan.price > 0 && (
+                    {/* 普通会员显示 ¥0 / 15积分 格式 */}
+                    {type === '普通会员' ? (
                       <div className="text-2xl font-bold text-seth-gold mb-4">
-                        ¥{plan.price}
-                        <span className="text-sm text-gray-400">/月</span>
+                        ¥{plan.price} / {plan.credits}积分
                       </div>
-                    )}
-
-                    {/* 仅免费用户显示功能特权 */}
-                    {type === '免费用户' && (
-                      <div className="space-y-2 mb-6 text-sm">
-                        <div className="flex items-center justify-center">
-                          <Check className="w-4 h-4 text-green-400 mr-2" />
-                          <span>智能AI对话</span>
+                    ) : (
+                      <>
+                        <div className="text-3xl font-bold mb-4">
+                          {plan.credits}
+                          <span className="text-lg text-gray-400">次对话</span>
                         </div>
-                        <div className="flex items-center justify-center">
-                          <Check className="w-4 h-4 text-green-400 mr-2" />
-                          <span>赛斯哲学专业解答</span>
-                        </div>
-                      </div>
+                        {plan.price > 0 && (
+                          <div className="text-2xl font-bold text-seth-gold mb-4">
+                            ¥{plan.price}
+                            <span className="text-sm text-gray-400">/月</span>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     {isCurrent ? (
@@ -236,7 +230,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
                       </div>
                     ) : plan.price === 0 ? (
                       <div className="w-full py-3 bg-gray-600 text-gray-300 rounded-full font-semibold">
-                        免费套餐
+                        当前套餐
                       </div>
                     ) : (
                       <button
