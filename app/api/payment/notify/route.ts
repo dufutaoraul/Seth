@@ -3,45 +3,32 @@ import { NextRequest, NextResponse } from 'next/server'
 // 强制动态路由
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
-  try {
-    console.log('=== ZPay回调开始 ===')
-    console.log('请求方法:', request.method)
-    console.log('请求头:', Object.fromEntries(request.headers.entries()))
+// 处理支付回调的核心逻辑
+async function handlePaymentNotify(params: Record<string, any>) {
+  console.log('=== ZPay回调开始 ===')
+  console.log('回调参数:', params)
 
-    // 环境变量检查
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const zpayKey = process.env.ZPAY_KEY
+  // 环境变量检查
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const zpayKey = process.env.ZPAY_KEY
 
-    if (!supabaseUrl || !supabaseServiceKey || !zpayKey) {
-      console.error('缺少必要的环境变量')
-      return new Response('fail', { status: 500 })
-    }
+  if (!supabaseUrl || !supabaseServiceKey || !zpayKey) {
+    console.error('缺少必要的环境变量')
+    return new Response('fail', { status: 500 })
+  }
 
-    // 动态导入，避免构建时错误
-    const { createClient } = await import('@supabase/supabase-js')
-    const { createHash } = await import('crypto')
+  // 动态导入，避免构建时错误
+  const { createClient } = await import('@supabase/supabase-js')
+  const { createHash } = await import('crypto')
 
-    // 创建 supabase 管理员客户端
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-
-    // 获取ZPay回调参数
-    const formData = await request.formData()
-    const params: Record<string, any> = {}
-
-    // 使用Array.from来避免TypeScript迭代器问题
-    const entries = Array.from(formData.entries())
-    for (const [key, value] of entries) {
-      params[key] = value.toString()
-    }
-
-    console.log('ZPay回调参数:', params)
+  // 创建 supabase 管理员客户端
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
 
     // 本地验证签名函数
     const verifyNotifySign = (params: Record<string, any>): boolean => {
@@ -165,10 +152,51 @@ export async function POST(request: NextRequest) {
       return new Response('fail', { status: 500 })
     }
 
-    console.log('支付成功处理完成:', orderNo)
-    return new Response('success')
+  console.log('支付成功处理完成:', orderNo)
+  return new Response('success')
+}
+
+// 支持GET请求（ZPay官方使用GET）
+export async function GET(request: NextRequest) {
+  try {
+    console.log('=== 收到GET回调请求 ===')
+
+    // 从URL参数获取回调数据
+    const { searchParams } = new URL(request.url)
+    const params: Record<string, any> = {}
+
+    for (const [key, value] of searchParams.entries()) {
+      params[key] = value
+    }
+
+    console.log('GET参数:', params)
+
+    return await handlePaymentNotify(params)
   } catch (error) {
-    console.error('支付回调处理错误:', error)
+    console.error('GET回调处理错误:', error)
+    return new Response('fail', { status: 500 })
+  }
+}
+
+// 兼容POST请求
+export async function POST(request: NextRequest) {
+  try {
+    console.log('=== 收到POST回调请求 ===')
+
+    // 从表单获取回调数据
+    const formData = await request.formData()
+    const params: Record<string, any> = {}
+
+    const entries = Array.from(formData.entries())
+    for (const [key, value] of entries) {
+      params[key] = value.toString()
+    }
+
+    console.log('POST参数:', params)
+
+    return await handlePaymentNotify(params)
+  } catch (error) {
+    console.error('POST回调处理错误:', error)
     return new Response('fail', { status: 500 })
   }
 }
