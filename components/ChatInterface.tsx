@@ -17,6 +17,7 @@ import {
   Bot,
   Menu,
   X,
+  AlertCircle,
 } from 'lucide-react'
 
 interface Props {
@@ -453,8 +454,9 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mr-3 text-gray-400 hover:text-white"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="mr-3 text-gray-400 hover:text-white transition-colors"
+                title={sidebarOpen ? "隐藏会话列表" : "显示会话列表"}
               >
                 <Menu className="w-6 h-6" />
               </button>
@@ -564,6 +566,27 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         {/* 输入区域 */}
         <div className="border-t border-gray-700 p-4">
           <div className="max-w-4xl mx-auto">
+            {/* 积分不足提示 */}
+            {credits && credits.remaining_credits < 1 && (
+              <div className="mb-4 bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-red-400">
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    <span>积分不足，无法继续对话</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      console.log('点击购买会员按钮')
+                      router.push('/membership-client')
+                    }}
+                    className="bg-seth-gold text-seth-dark px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+                  >
+                    购买会员
+                  </button>
+                </div>
+              </div>
+            )}
+
             <form
               onSubmit={(e) => {
                 e.preventDefault()
