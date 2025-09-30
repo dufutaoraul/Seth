@@ -215,6 +215,19 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
                       </div>
                     )}
 
+                    {/* 仅免费用户显示功能特权 */}
+                    {type === '免费用户' && (
+                      <div className="space-y-2 mb-6 text-sm">
+                        <div className="flex items-center justify-center">
+                          <Check className="w-4 h-4 text-green-400 mr-2" />
+                          <span>智能AI对话</span>
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <Check className="w-4 h-4 text-green-400 mr-2" />
+                          <span>赛斯哲学专业解答</span>
+                        </div>
+                      </div>
+                    )}
 
                     {isCurrent ? (
                       <div className="w-full py-3 bg-gray-600 text-gray-300 rounded-full font-semibold">
