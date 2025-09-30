@@ -125,10 +125,26 @@ export async function POST(request: NextRequest) {
       console.log('Dify response received:', difyResponse)
     } catch (difyError: any) {
       console.error('Dify API error:', difyError)
-      return NextResponse.json(
-        { error: difyError.message || 'AI服务暂时不可用' },
-        { status: 500 }
-      )
+
+      // 如果conversation不存在，尝试创建新对话
+      if (difyError.message?.includes('Conversation Not Exists') || difyError.message?.includes('conversation_id')) {
+        console.log('Conversation不存在，创建新对话重试')
+        try {
+          difyResponse = await sendMessageToDify(message, user.id, undefined)
+          console.log('重试成功，Dify response received:', difyResponse)
+        } catch (retryError: any) {
+          console.error('重试也失败:', retryError)
+          return NextResponse.json(
+            { error: retryError.message || 'AI服务暂时不可用' },
+            { status: 500 }
+          )
+        }
+      } else {
+        return NextResponse.json(
+          { error: difyError.message || 'AI服务暂时不可用' },
+          { status: 500 }
+        )
+      }
     }
 
     // 如果创建了会话，保存聊天记录
