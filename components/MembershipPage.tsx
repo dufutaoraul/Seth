@@ -215,28 +215,6 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
                       </div>
                     )}
 
-                    <div className="space-y-2 mb-6 text-sm">
-                      <div className="flex items-center justify-center">
-                        <Check className="w-4 h-4 text-green-400 mr-2" />
-                        <span>智能AI对话</span>
-                      </div>
-                      <div className="flex items-center justify-center">
-                        <Check className="w-4 h-4 text-green-400 mr-2" />
-                        <span>赛斯哲学专业解答</span>
-                      </div>
-                      {plan.credits >= 150 && (
-                        <div className="flex items-center justify-center">
-                          <Check className="w-4 h-4 text-green-400 mr-2" />
-                          <span>优先响应</span>
-                        </div>
-                      )}
-                      {plan.credits >= 500 && (
-                        <div className="flex items-center justify-center">
-                          <Check className="w-4 h-4 text-green-400 mr-2" />
-                          <span>专属客服支持</span>
-                        </div>
-                      )}
-                    </div>
 
                     {isCurrent ? (
                       <div className="w-full py-3 bg-gray-600 text-gray-300 rounded-full font-semibold">
