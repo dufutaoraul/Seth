@@ -214,6 +214,18 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         return
       }
 
+      // 准备请求数据
+      const requestData = {
+        message: userMessage,
+        sessionId: currentSession?.id,
+        conversationId: messages.find(m => m.dify_conversation_id)?.dify_conversation_id,
+      }
+
+      console.log('=== ChatInterface 发送请求 ===')
+      console.log('请求数据:', JSON.stringify(requestData, null, 2))
+      console.log('当前会话:', currentSession)
+      console.log('现有消息数量:', messages.length)
+
       // 调用简化版聊天API（已添加数据库保存功能）
       const response = await fetch('/api/chat-simple', {
         method: 'POST',
@@ -221,15 +233,25 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          message: userMessage,
-          sessionId: currentSession?.id,
-          conversationId: messages.find(m => m.dify_conversation_id)?.dify_conversation_id,
-        }),
+        body: JSON.stringify(requestData),
       })
 
       if (!response.ok) {
-        throw new Error('发送消息失败')
+        // 尝试获取详细错误信息
+        let errorMessage = '发送消息失败'
+        try {
+          const errorData = await response.json()
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+          if (errorData.details) {
+            errorMessage += `: ${errorData.details}`
+          }
+          console.error('API错误详情:', errorData)
+        } catch (e) {
+          console.error('无法解析错误响应:', e)
+        }
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
