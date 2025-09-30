@@ -191,14 +191,14 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     if (!credits || credits.remaining_credits < 1) {
       console.log('积分检查失败，当前积分:', credits)
       toast.error('积分不足，请购买会员')
-      console.log('积分不足，尝试跳转到会员页面: /membership-client')
+      console.log('积分不足，尝试跳转到会员页面: /membership')
 
       try {
-        router.push('/membership-client')
+        router.push('/membership')
         console.log('跳转命令已执行')
       } catch (error) {
         console.error('路由跳转失败:', error)
-        window.location.href = '/membership-client'
+        window.location.href = '/membership'
       }
       return
     }
@@ -379,7 +379,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                 </div>
                 <div className="text-sm text-gray-400">
                   剩余积分: <button
-                    onClick={() => router.push('/membership-client')}
+                    onClick={() => router.push('/membership')}
                     className="text-seth-gold hover:text-yellow-300 transition-colors cursor-pointer"
                   >
                     {credits?.remaining_credits || 0}
@@ -467,7 +467,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
             </div>
             <div className="hidden lg:flex items-center space-x-4">
               <button
-                onClick={() => router.push('/membership-client')}
+                onClick={() => router.push('/membership')}
                 className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
               >
                 积分: <span className="text-seth-gold hover:text-yellow-300">{credits?.remaining_credits || 0}</span>
@@ -577,7 +577,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                   <button
                     onClick={() => {
                       console.log('点击购买会员按钮')
-                      router.push('/membership-client')
+                      router.push('/membership')
                     }}
                     className="bg-seth-gold text-seth-dark px-4 py-2 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
                   >
