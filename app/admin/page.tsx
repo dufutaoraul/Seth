@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null)
   const router = useRouter()
 
   // 管理员密码（请修改为您自己的密码）
@@ -167,6 +168,7 @@ export default function AdminPage() {
                   <th className="text-left p-4 text-gray-300">到期时间</th>
                   <th className="text-left p-4 text-gray-300">状态</th>
                   <th className="text-left p-4 text-gray-300">剩余天数</th>
+                  <th className="text-left p-4 text-gray-300">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,6 +212,14 @@ export default function AdminPage() {
                     </td>
                     <td className="p-4 text-white">
                       {user.days_remaining !== null ? `${Math.floor(user.days_remaining)}天` : '-'}
+                    </td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => window.open(`/api/payment/check-order?email=${user.email}`, '_blank')}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition"
+                      >
+                        查看订单
+                      </button>
                     </td>
                   </tr>
                 ))}
