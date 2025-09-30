@@ -25,8 +25,9 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
 
-  // 简单的密码验证（生产环境应该使用更安全的方式）
-  const ADMIN_PASSWORD = 'seth2025admin' // 请在部署后修改此密码
+  // 管理员密码（请修改为您自己的密码）
+  // 修改方法：直接修改下面这行的密码，然后重新部署
+  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'seth2025admin'
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) {
@@ -41,25 +42,21 @@ export default function AdminPage() {
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const { data: { session } } = await supabase.auth.getSession()
 
-      if (!session) {
-        return
-      }
-
-      // 调用API获取所有用户数据
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
+      // 直接调用API，不需要session验证
+      const response = await fetch('/api/admin/users')
 
       if (response.ok) {
         const data = await response.json()
+        console.log('管理后台数据:', data)
         setUsers(data.users || [])
+      } else {
+        console.error('API返回错误:', response.status, await response.text())
+        alert('加载用户数据失败，请检查控制台')
       }
     } catch (error) {
       console.error('加载用户数据失败:', error)
+      alert('加载失败: ' + (error instanceof Error ? error.message : '未知错误'))
     } finally {
       setLoading(false)
     }

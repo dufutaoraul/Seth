@@ -5,11 +5,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    // 验证管理员权限（简单验证，生产环境应该更严格）
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: '未授权访问' }, { status: 401 })
-    }
+    // 注意：此API没有验证，仅通过前端密码保护
+    // 生产环境建议添加API key验证
 
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

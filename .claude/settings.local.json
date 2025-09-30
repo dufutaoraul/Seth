@@ -13,7 +13,14 @@
       "Bash(npm install:*)",
       "Bash(pkill:*)",
       "Bash(taskkill:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(vercel:*)",
+      "WebFetch(domain:seth-blush.vercel.app)",
+      "Bash(curl -X POST https://seth-blush.vercel.app/api/payment/manual-fix )",
+      "Bash(curl -X POST https://seth-blush.vercel.app/api/payment/manual-fix -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"3368327@qq.com\"\"\"\",\"\"\"\"orderNo\"\"\"\":\"\"\"\"20250930090354340\"\"\"\"}')",
+      "Bash(curl -X GET https://seth-blush.vercel.app/api/payment/check-order?email=3368327@qq.com)",
+      "Bash(curl -X POST \"https://seth-blush.vercel.app/api/payment/manual-fix\" )",
+      "Bash(curl -X POST \"https://seth-blush.vercel.app/api/payment/check-order?email=2245246007@qq.com\")"
     ],
     "deny": [],
     "ask": []
