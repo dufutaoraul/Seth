@@ -37,6 +37,7 @@ export default function PaymentSuccess() {
         if (creditsError) {
           console.error('获取积分信息失败:', creditsError)
         } else {
+          console.log('支付成功页面获取到的用户积分:', userCredits)
           setUserCredits(userCredits)
         }
       } catch (error) {

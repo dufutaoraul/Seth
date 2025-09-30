@@ -82,7 +82,7 @@ export default function PaymentSuccessPage({ user, userCredits }: Props) {
           className="space-y-4"
         >
           <button
-            onClick={() => router.push('/chat')}
+            onClick={() => router.push('/chat-test')}
             className="w-full btn-primary flex items-center justify-center"
           >
             <Sparkles className="w-5 h-5 mr-2" />
