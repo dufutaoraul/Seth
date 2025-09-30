@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,8 +20,16 @@ export async function GET(request: NextRequest) {
 
     const token = authHeader.substring(7)
 
-    // 创建 Supabase 客户端并验证用户
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // 使用service role key绕过RLS，直接访问数据
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+
+    // 先用anon key验证用户token
+    const supabase = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     const {
       data: { user },
       error: authError,
@@ -37,8 +45,8 @@ export async function GET(request: NextRequest) {
 
     console.log('Credits API - User authenticated:', user.email)
 
-    // 获取用户积分
-    const { data: userCredits, error: creditsError } = await supabase
+    // 使用admin客户端获取用户积分，绕过RLS
+    const { data: userCredits, error: creditsError } = await supabaseAdmin
       .from('user_credits')
       .select('*')
       .eq('user_id', user.id)
@@ -54,13 +62,13 @@ export async function GET(request: NextRequest) {
 
     // 如果没有积分记录，创建默认积分
     if (!userCredits) {
-      const { data: newCredits, error: createCreditsError } = await supabase
+      const { data: newCredits, error: createCreditsError } = await supabaseAdmin
         .from('user_credits')
         .insert([{
           user_id: user.id,
           total_credits: 15,
           used_credits: 0,
-          current_membership: '免费用户'
+          current_membership: '普通会员'
         }])
         .select()
         .single()
