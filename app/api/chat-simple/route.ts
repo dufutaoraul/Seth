@@ -203,10 +203,26 @@ export async function POST(request: NextRequest) {
 
     // 扣除用户积分
     try {
-      const { error: creditUpdateError } = await supabase
+      // 使用管理员权限的supabase客户端
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        }
+      )
+
+      const newUsedCredits = userCredits ? userCredits.used_credits + 1 : 1
+      console.log(`准备扣除积分: ${userCredits?.used_credits || 0} + 1 = ${newUsedCredits}`)
+
+      const { error: creditUpdateError } = await supabaseAdmin
         .from('user_credits')
         .update({
-          used_credits: userCredits ? userCredits.used_credits + 1 : 1,
+          used_credits: newUsedCredits,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', user.id)
@@ -214,7 +230,7 @@ export async function POST(request: NextRequest) {
       if (creditUpdateError) {
         console.error('扣除积分失败:', creditUpdateError)
       } else {
-        console.log('成功扣除1积分')
+        console.log('成功扣除1积分，新的used_credits:', newUsedCredits)
       }
     } catch (creditError) {
       console.error('积分操作失败:', creditError)
