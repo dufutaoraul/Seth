@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试积分API</title>
+</head>
+<body>
+    <h1>测试积分API</h1>
+    <button onclick="testCreditsAPI()">测试获取积分</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testCreditsAPI() {
+            try {
+                // 先登录获取token
+                const loginResp = await fetch('https://seth-blush.vercel.app/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: '3368327@qq.com',
+                        password: 'your-password-here' // 需要填入密码
+                    })
+                });
+
+                if (!loginResp.ok) {
+                    document.getElementById('result').textContent = '登录失败';
+                    return;
+                }
+
+                const { session } = await loginResp.json();
+                const token = session.access_token;
+
+                // 获取积分
+                const creditsResp = await fetch('https://seth-blush.vercel.app/api/credits', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                const data = await creditsResp.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
