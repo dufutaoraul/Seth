@@ -144,11 +144,13 @@ export async function POST(request: NextRequest) {
     const newExpiry = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30天
 
     // 更新用户积分和会员信息
+    const newTotalCredits = currentCredits.total_credits + paymentOrder.credits_to_add
+    console.log(`积分更新: ${currentCredits.total_credits} + ${paymentOrder.credits_to_add} = ${newTotalCredits}`)
+
     const { error: updateCreditsError } = await supabaseAdmin
       .from('user_credits')
       .update({
-        total_credits: paymentOrder.credits_to_add,
-        used_credits: 0, // 重置已使用积分
+        total_credits: newTotalCredits, // 累加积分，不是替换
         current_membership: paymentOrder.membership_type,
         membership_expires_at: newExpiry.toISOString(),
       })
