@@ -86,7 +86,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
 
           // 自动选择并加载最新的会话
           console.log('加载到的会话列表:', sessionsList.length, '个会话')
-          sessionsList.forEach((session, index) => {
+          sessionsList.forEach((session: any, index: number) => {
             console.log(`会话 ${index + 1}:`, session.title, session.updated_at)
           })
 
