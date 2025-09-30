@@ -32,7 +32,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
   const [inputMessage, setInputMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [credits, setCredits] = useState(userCredits)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true) // 默认打开侧边栏显示会话列表
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -45,12 +45,19 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     scrollToBottom()
   }, [messages])
 
-  // 初始化时加载最新积分
+  // 初始化时加载最新积分（强制刷新）
   useEffect(() => {
     const initializeCredits = async () => {
+      console.log('=== 初始化积分 ===')
+      console.log('传入的初始积分:', userCredits)
       const updatedCredits = await loadUserCredits()
+      console.log('API返回的最新积分:', updatedCredits)
       if (updatedCredits) {
         setCredits(updatedCredits)
+        console.log('积分已更新为:', updatedCredits.remaining_credits)
+      } else {
+        console.warn('加载积分失败，使用初始积分')
+        setCredits(userCredits)
       }
     }
     initializeCredits()
@@ -78,6 +85,11 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
           setSessions(sessionsList)
 
           // 自动选择并加载最新的会话
+          console.log('加载到的会话列表:', sessionsList.length, '个会话')
+          sessionsList.forEach((session, index) => {
+            console.log(`会话 ${index + 1}:`, session.title, session.updated_at)
+          })
+
           if (sessionsList.length > 0) {
             const latestSession = sessionsList[0] // 已按时间排序
             console.log('自动选择最新会话:', latestSession)
@@ -176,9 +188,17 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
 
     // 检查积分（考虑即将扣除的1积分）
     if (!credits || credits.remaining_credits < 1) {
+      console.log('积分检查失败，当前积分:', credits)
       toast.error('积分不足，请购买会员')
-      console.log('积分不足，跳转到会员页面')
-      router.push('/membership-client')
+      console.log('积分不足，尝试跳转到会员页面: /membership-client')
+
+      try {
+        router.push('/membership-client')
+        console.log('跳转命令已执行')
+      } catch (error) {
+        console.error('路由跳转失败:', error)
+        window.location.href = '/membership-client'
+      }
       return
     }
 
