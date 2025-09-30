@@ -26,6 +26,7 @@ interface Props {
 
 export default function MembershipPage({ user, userCredits, paymentHistory }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false)
   const router = useRouter()
 
   const handlePurchase = async (membershipType: MembershipType) => {
@@ -262,46 +263,70 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
           </div>
         </motion.div>
 
-        {/* 支付历史 */}
-        {paymentHistory.length > 0 && (
+        {/* 查询订单按钮 */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <button
+            onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+            className="w-full md:w-auto bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center mx-auto"
+          >
+            <History className="w-5 h-5 mr-2" />
+            {showPaymentHistory ? '隐藏订单记录' : '查询订单记录'}
+          </button>
+        </motion.div>
+
+        {/* 支付历史 - 点击后才显示，且只显示已支付的 */}
+        {showPaymentHistory && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700 mb-8"
           >
             <h2 className="text-xl font-bold mb-4 flex items-center">
               <History className="w-6 h-6 mr-2" />
-              支付历史
+              订单记录
             </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-600">
-                    <th className="text-left py-3">订单号</th>
-                    <th className="text-left py-3">套餐</th>
-                    <th className="text-left py-3">金额</th>
-                    <th className="text-left py-3">状态</th>
-                    <th className="text-left py-3">时间</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paymentHistory.map((order) => (
-                    <tr key={order.id} className="border-b border-gray-700">
-                      <td className="py-3 font-mono text-xs">{order.order_no}</td>
-                      <td className="py-3">{order.membership_type}</td>
-                      <td className="py-3 text-seth-gold">¥{order.amount_yuan}</td>
-                      <td className={`py-3 ${getPaymentStatusColor(order.payment_status)}`}>
-                        {getPaymentStatusText(order.payment_status)}
-                      </td>
-                      <td className="py-3 text-gray-400">
-                        {new Date(order.created_at).toLocaleString()}
-                      </td>
+            {paymentHistory.filter(order => order.payment_status === 'paid').length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-600">
+                      <th className="text-left py-3">订单号</th>
+                      <th className="text-left py-3">套餐</th>
+                      <th className="text-left py-3">金额</th>
+                      <th className="text-left py-3">状态</th>
+                      <th className="text-left py-3">时间</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paymentHistory
+                      .filter(order => order.payment_status === 'paid')
+                      .map((order) => (
+                        <tr key={order.id} className="border-b border-gray-700">
+                          <td className="py-3 font-mono text-xs">{order.order_no}</td>
+                          <td className="py-3">{order.membership_type}</td>
+                          <td className="py-3 text-seth-gold">¥{order.amount_yuan}</td>
+                          <td className={`py-3 ${getPaymentStatusColor(order.payment_status)}`}>
+                            {getPaymentStatusText(order.payment_status)}
+                          </td>
+                          <td className="py-3 text-gray-400">
+                            {new Date(order.created_at).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <p>暂无已支付的订单记录</p>
+              </div>
+            )}
           </motion.div>
         )}
 
