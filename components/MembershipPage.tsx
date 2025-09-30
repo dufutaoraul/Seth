@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { User } from '@supabase/supabase-js'
-import { UserCredits, PaymentOrder } from '@/lib/supabase'
+import { UserCredits, PaymentOrder, supabase } from '@/lib/supabase'
 import { MEMBERSHIP_PLANS, MembershipType } from '@/lib/zpay'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -35,10 +35,19 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
     setLoading(membershipType)
 
     try {
+      // 获取用户token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        toast.error('请先登录')
+        router.push('/')
+        return
+      }
+
       const response = await fetch('/api/payment/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           membershipType,
