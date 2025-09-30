@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       test_webhook_url: `${baseUrl}/api/payment/test-webhook`,
       return_url: `${baseUrl}/payment/success`,
     },
-    suggestions: []
+    suggestions: [] as string[]
   }
 
   // 添加建议
