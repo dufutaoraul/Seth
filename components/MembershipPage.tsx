@@ -61,9 +61,9 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
 
       const { paymentUrl } = await response.json()
 
-      // 跳转到支付页面
-      window.open(paymentUrl, '_blank')
-      toast.success('已打开支付页面，请完成支付')
+      // 跳转到支付页面（兼容手机和电脑）
+      // 手机上window.open可能被拦截，直接跳转更可靠
+      window.location.href = paymentUrl
     } catch (error: any) {
       toast.error(error.message || '创建订单失败')
     } finally {

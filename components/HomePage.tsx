@@ -296,24 +296,6 @@ export default function HomePage() {
             </>
           )}
 
-          {/* 会员等级预览 */}
-          <div className="mt-8 p-4 bg-gray-900/50 rounded-xl">
-            <h3 className="text-lg font-semibold mb-3 text-center">会员权益</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>免费用户</span>
-                <span className="text-seth-gold">15次对话/月</span>
-              </div>
-              <div className="flex justify-between">
-                <span>标准会员</span>
-                <span className="text-seth-orange">150次对话/月 ¥1</span>
-              </div>
-              <div className="flex justify-between">
-                <span>高级会员</span>
-                <span className="text-green-400">500次对话/月 ¥2</span>
-              </div>
-            </div>
-          </div>
         </motion.div>
       </div>
     </div>
