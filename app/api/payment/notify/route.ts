@@ -5,8 +5,10 @@ export const dynamic = 'force-dynamic'
 
 // 处理支付回调的核心逻辑
 async function handlePaymentNotify(params: Record<string, any>) {
-  console.log('=== ZPay回调开始 ===')
-  console.log('回调参数:', params)
+  try {
+    console.log('=== ZPay回调开始 ===')
+    console.log('回调参数:', params)
+    console.log('回调时间:', new Date().toISOString())
 
   // 环境变量检查
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -128,8 +130,9 @@ async function handlePaymentNotify(params: Record<string, any>) {
     const newTotalCredits = currentCredits.total_credits + paymentOrder.credits_to_add
     console.log(`积分更新: ${currentCredits.total_credits} + ${paymentOrder.credits_to_add} = ${newTotalCredits}`)
 
-    // 区分会员套餐和积分包
-    const isMembershipOrder = paymentOrder.order_type === 'membership'
+    // 区分会员套餐和积分包（如果order_type不存在，默认为membership）
+    const isMembershipOrder = !paymentOrder.order_type || paymentOrder.order_type === 'membership'
+    console.log('订单类型:', paymentOrder.order_type, '是否为会员订单:', isMembershipOrder)
 
     let updateData: any = {
       total_credits: newTotalCredits, // 积分总是累加
@@ -164,8 +167,15 @@ async function handlePaymentNotify(params: Record<string, any>) {
       return new Response('fail', { status: 500 })
     }
 
-  console.log('支付成功处理完成:', orderNo)
-  return new Response('success')
+    console.log('支付成功处理完成:', orderNo)
+    return new Response('success')
+  } catch (error: any) {
+    console.error('=== ZPay回调处理失败 ===')
+    console.error('错误信息:', error.message)
+    console.error('错误堆栈:', error.stack)
+    console.error('完整错误:', JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    return new Response('fail: ' + error.message, { status: 500 })
+  }
 }
 
 // 支持GET请求（ZPay官方使用GET）
