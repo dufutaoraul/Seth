@@ -90,7 +90,6 @@ export async function POST(request: NextRequest) {
     const now = new Date()
 
     // 使用管理员权限执行过期检查
-    const { createClient } = await import('@supabase/supabase-js')
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -326,19 +325,6 @@ export async function POST(request: NextRequest) {
 
     // 扣除用户积分（必须成功，否则返回错误）
     try {
-      // 使用管理员权限的supabase客户端
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        }
-      )
-
       const newUsedCredits = currentUserCredits.used_credits + 1
       console.log(`准备扣除积分: ${currentUserCredits.used_credits} + 1 = ${newUsedCredits}`)
 
