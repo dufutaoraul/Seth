@@ -165,7 +165,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const params: Record<string, any> = {}
 
-    for (const [key, value] of searchParams.entries()) {
+    // 使用Array.from来避免TypeScript迭代器问题
+    const entries = Array.from(searchParams.entries())
+    for (const [key, value] of entries) {
       params[key] = value
     }
 
