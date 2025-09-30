@@ -340,6 +340,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
           <h3 className="text-lg font-semibold mb-4">购买说明</h3>
           <div className="space-y-2 text-sm text-gray-400">
             <p>• 会员有效期为购买后的30天</p>
+            <p>• 积分每月自动重置，未使用积分不会累积</p>
             <p>• 目前只支持支付宝支付，请用支付宝扫码支付</p>
             <p>• 购买后即时生效，积分立即到账</p>
             <p>• 如有问题请联系客服微信：15692903143</p>
