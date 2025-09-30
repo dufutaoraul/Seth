@@ -26,9 +26,8 @@ export default function AdminPage() {
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null)
   const router = useRouter()
 
-  // 管理员密码（请修改为您自己的密码）
-  // 修改方法：直接修改下面这行的密码，然后重新部署
-  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'seth2025admin'
+  // 管理员密码
+  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin'
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) {
