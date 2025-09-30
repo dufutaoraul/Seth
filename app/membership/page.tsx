@@ -17,29 +17,34 @@ export default function Membership() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
 
-        if (!user) {
+        if (!session?.user) {
           router.push('/')
           return
         }
 
-        setUser(user)
+        setUser(session.user)
 
-        // 获取用户积分信息
-        const { data: credits } = await supabase
-          .from('user_credits')
-          .select('*')
-          .eq('user_id', user.id)
-          .single()
+        // 使用API获取用户积分信息（避免RLS问题）
+        const creditsResponse = await fetch('/api/credits', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        })
 
-        setUserCredits(credits)
+        if (creditsResponse.ok) {
+          const { credits } = await creditsResponse.json()
+          setUserCredits(credits)
+        } else {
+          console.error('获取积分失败:', await creditsResponse.text())
+        }
 
         // 获取用户的支付记录
         const { data: history } = await supabase
           .from('payment_orders')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
 
         setPaymentHistory(history || [])
