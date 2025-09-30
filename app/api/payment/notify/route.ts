@@ -130,16 +130,21 @@ async function handlePaymentNotify(params: Record<string, any>) {
     const newTotalCredits = currentCredits.total_credits + paymentOrder.credits_to_add
     console.log(`积分更新: ${currentCredits.total_credits} + ${paymentOrder.credits_to_add} = ${newTotalCredits}`)
 
-    // 区分会员套餐和积分包（如果order_type不存在，默认为membership）
-    const isMembershipOrder = !paymentOrder.order_type || paymentOrder.order_type === 'membership'
-    console.log('订单类型:', paymentOrder.order_type, '是否为会员订单:', isMembershipOrder)
+    // 区分订单类型：membership（会员套餐）、upgrade（升级套餐）、credit_pack（积分包）
+    const orderType = paymentOrder.order_type || 'membership'
+    console.log('订单类型:', orderType)
 
     let updateData: any = {
       total_credits: newTotalCredits, // 积分总是累加
     }
 
-    // 只有购买会员套餐时才更新会员等级和到期时间
-    if (isMembershipOrder && paymentOrder.membership_type) {
+    // 情况1：升级套餐（upgrade）- 只加积分和改等级，不延长有效期
+    if (orderType === 'upgrade') {
+      updateData.current_membership = '高级会员' // 升级到高级会员
+      console.log('升级订单，更新会员等级为高级会员，不改变到期时间')
+    }
+    // 情况2：会员套餐（membership）- 加积分、改等级、延长有效期
+    else if (orderType === 'membership' && paymentOrder.membership_type) {
       const now = new Date()
       const currentExpiry = currentCredits.membership_expires_at
         ? new Date(currentCredits.membership_expires_at)
@@ -153,7 +158,9 @@ async function handlePaymentNotify(params: Record<string, any>) {
       updateData.membership_expires_at = newExpiry.toISOString()
 
       console.log(`会员套餐订单，更新会员等级为: ${paymentOrder.membership_type}，到期时间: ${newExpiry.toISOString()}`)
-    } else {
+    }
+    // 情况3：积分包（credit_pack）- 只加积分
+    else {
       console.log('积分包订单，仅增加积分，不改变会员等级和到期时间')
     }
 

@@ -43,4 +43,5 @@ next-env.d.ts
 *.swo
 
 # OS
-Thumbs.db
+Thumbs.dbdownload/miniprogram-3/
+download/*.rar

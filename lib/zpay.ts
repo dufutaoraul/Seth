@@ -99,20 +99,27 @@ export function verifyNotifySign(params: Record<string, any>): boolean {
   return sign === expectedSign
 }
 
-// 会员套餐配置 (测试价格)
+// 会员套餐配置（正式价格）
 export const MEMBERSHIP_PLANS = {
   '普通会员': { credits: 15, price: 0, type: 'membership' as const },
-  '标准会员': { credits: 3, price: 1, type: 'membership' as const },    // 测试价格 1元 = 3积分
-  '高级会员': { credits: 6, price: 2, type: 'membership' as const },    // 测试价格 2元 = 6积分
+  '标准会员': { credits: 150, price: 145, type: 'membership' as const },
+  '高级会员': { credits: 500, price: 360, type: 'membership' as const },
 } as const
 
 export type MembershipType = keyof typeof MEMBERSHIP_PLANS
 
-// 积分包配置 (不改变会员等级，只增加积分)
+// 升级套餐配置（标准会员升级到高级会员）
+export const UPGRADE_PLAN = {
+  '升级到高级': { credits: 350, price: 215, type: 'upgrade' as const }, // 补差价360-145=215，补差额500-150=350
+} as const
+
+export type UpgradePlanType = keyof typeof UPGRADE_PLAN
+
+// 积分包配置（不改变会员等级，只增加积分）
 export const CREDIT_PACKS = {
-  '小积分包': { credits: 3, price: 1, type: 'credit_pack' as const },
-  '大积分包': { credits: 6, price: 2, type: 'credit_pack' as const },
+  '积分包150': { credits: 150, price: 145, type: 'credit_pack' as const },
+  '积分包500': { credits: 500, price: 360, type: 'credit_pack' as const },
 } as const
 
 export type CreditPackType = keyof typeof CREDIT_PACKS
-export type ProductType = MembershipType | CreditPackType
+export type ProductType = MembershipType | UpgradePlanType | CreditPackType

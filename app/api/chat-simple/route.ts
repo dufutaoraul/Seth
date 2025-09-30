@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     if (!currentUserCredits) {
       const { data: newCredits, error: createCreditsError } = await supabase
         .from('user_credits')
-        .insert([{ user_id: user.id, total_credits: 15, used_credits: 0 }])
+        .insert([{ user_id: user.id, total_credits: 15, used_credits: 0, current_membership: '普通会员' }])
         .select()
         .single()
 
@@ -84,6 +84,58 @@ export async function POST(request: NextRequest) {
       }
       console.log('为新用户创建积分记录:', newCredits)
       currentUserCredits = newCredits
+    }
+
+    // ⭐ 检查付费会员是否过期（免费用户积分永不过期）
+    if (currentUserCredits.current_membership !== '普通会员' && currentUserCredits.membership_expires_at) {
+      const now = new Date()
+      const expireDate = new Date(currentUserCredits.membership_expires_at)
+
+      if (expireDate <= now) {
+        console.log('会员已过期，自动降级为免费用户:', {
+          user_id: user.id,
+          membership: currentUserCredits.current_membership,
+          expired_at: currentUserCredits.membership_expires_at
+        })
+
+        // 使用管理员权限执行降级操作
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+            },
+          }
+        )
+
+        // 过期后：清零积分 + 恢复15条免费额度 + 降级为普通会员
+        const { error: downgradeError } = await supabaseAdmin
+          .from('user_credits')
+          .update({
+            total_credits: 15,
+            used_credits: 0,
+            current_membership: '普通会员',
+            membership_expires_at: null,
+          })
+          .eq('user_id', user.id)
+
+        if (downgradeError) {
+          console.error('降级失败:', downgradeError)
+        } else {
+          console.log('降级成功，已恢复15条免费积分')
+          // 更新当前积分对象
+          currentUserCredits = {
+            ...currentUserCredits,
+            total_credits: 15,
+            used_credits: 0,
+            current_membership: '普通会员',
+            membership_expires_at: null,
+          }
+        }
+      }
     }
 
     // 检查积分是否足够

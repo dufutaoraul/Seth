@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createPaymentUrl, generateOrderNo, MEMBERSHIP_PLANS, CREDIT_PACKS, MembershipType, CreditPackType, ProductType } from '@/lib/zpay'
+import { createPaymentUrl, generateOrderNo, MEMBERSHIP_PLANS, UPGRADE_PLAN, CREDIT_PACKS, MembershipType, UpgradePlanType, CreditPackType, ProductType } from '@/lib/zpay'
 
 // 强制动态路由
 export const dynamic = 'force-dynamic'
@@ -9,11 +9,12 @@ export async function POST(request: NextRequest) {
   try {
     const { productType, paymentMethod = 'alipay' } = await request.json()
 
-    // 检查是会员套餐还是积分包
+    // 检查是会员套餐、升级套餐还是积分包
     const isMembership = productType in MEMBERSHIP_PLANS
+    const isUpgrade = productType in UPGRADE_PLAN
     const isCreditPack = productType in CREDIT_PACKS
 
-    if (!productType || (!isMembership && !isCreditPack)) {
+    if (!productType || (!isMembership && !isUpgrade && !isCreditPack)) {
       return NextResponse.json(
         { error: '无效的产品类型' },
         { status: 400 }
@@ -49,6 +50,8 @@ export async function POST(request: NextRequest) {
     // 获取产品信息
     const product = isMembership
       ? MEMBERSHIP_PLANS[productType as MembershipType]
+      : isUpgrade
+      ? UPGRADE_PLAN[productType as UpgradePlanType]
       : CREDIT_PACKS[productType as CreditPackType]
 
     if (product.price === 0) {
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
         {
           user_id: user.id,
           order_no: orderNo,
-          membership_type: isMembership ? productType : null,
+          membership_type: isMembership ? productType : isUpgrade ? '高级会员' : null,
           order_type: product.type,
           amount_yuan: product.price,
           credits_to_add: product.credits,
