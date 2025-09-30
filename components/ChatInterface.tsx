@@ -77,11 +77,14 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
           const sessionsList = data.sessions || []
           setSessions(sessionsList)
 
-          // 如果没有当前会话但有会话列表，自动选择最新的会话
-          if (!currentSession && sessionsList.length > 0) {
+          // 自动选择并加载最新的会话
+          if (sessionsList.length > 0) {
             const latestSession = sessionsList[0] // 已按时间排序
+            console.log('自动选择最新会话:', latestSession)
             setCurrentSession(latestSession)
             loadSessionMessages(latestSession.id)
+          } else {
+            console.log('没有找到任何会话，将在发送消息时创建新会话')
           }
         }
       } catch (error) {
@@ -129,6 +132,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       const response = await fetch('/api/credits', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
+          'Cache-Control': 'no-cache',
         },
       })
 
@@ -264,9 +268,15 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       ])
 
       // 刷新用户积分
+      console.log('=== 开始刷新用户积分 ===')
+      console.log('发送前积分:', credits)
       const updatedCredits = await loadUserCredits()
+      console.log('API返回的最新积分:', updatedCredits)
       if (updatedCredits) {
         setCredits(updatedCredits)
+        console.log('积分状态已更新')
+      } else {
+        console.error('获取积分失败，保持原有积分显示')
       }
 
       // 如果创建了新会话，更新当前会话
