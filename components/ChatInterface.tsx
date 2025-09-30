@@ -267,16 +267,29 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         data.assistantMessage,
       ])
 
-      // 刷新用户积分
+      // 立即更新积分（先减1，然后获取最新数据确认）
       console.log('=== 开始刷新用户积分 ===')
       console.log('发送前积分:', credits)
+
+      // 立即减1积分显示（乐观更新）
+      if (credits) {
+        const optimisticCredits = {
+          ...credits,
+          used_credits: credits.used_credits + 1,
+          remaining_credits: credits.remaining_credits - 1
+        }
+        setCredits(optimisticCredits)
+        console.log('乐观更新积分:', optimisticCredits)
+      }
+
+      // 然后获取服务器最新数据确认
       const updatedCredits = await loadUserCredits()
       console.log('API返回的最新积分:', updatedCredits)
       if (updatedCredits) {
         setCredits(updatedCredits)
-        console.log('积分状态已更新')
+        console.log('积分状态已确认更新')
       } else {
-        console.error('获取积分失败，保持原有积分显示')
+        console.error('获取积分失败，保持乐观更新的积分显示')
       }
 
       // 如果创建了新会话，更新当前会话

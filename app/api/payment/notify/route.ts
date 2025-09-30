@@ -5,6 +5,10 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('=== ZPay回调开始 ===')
+    console.log('请求方法:', request.method)
+    console.log('请求头:', Object.fromEntries(request.headers.entries()))
+
     // 环境变量检查
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
