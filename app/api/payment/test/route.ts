@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
     const body = await request.formData()
     const params: Record<string, any> = {}
 
-    for (const [key, value] of body.entries()) {
+    // 使用Array.from避免TypeScript迭代器问题
+    const entries = Array.from(body.entries())
+    for (const [key, value] of entries) {
       params[key] = value.toString()
     }
 
