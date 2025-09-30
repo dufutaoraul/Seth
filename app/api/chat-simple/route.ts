@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 如果没有积分记录，创建默认积分
-    if (!userCredits) {
+    let currentUserCredits = userCredits
+    if (!currentUserCredits) {
       const { data: newCredits, error: createCreditsError } = await supabase
         .from('user_credits')
         .insert([{ user_id: user.id, total_credits: 15, used_credits: 0 }])
@@ -82,18 +83,19 @@ export async function POST(request: NextRequest) {
         )
       }
       console.log('为新用户创建积分记录:', newCredits)
-    } else {
-      // 检查积分是否足够
-      const remainingCredits = userCredits.total_credits - userCredits.used_credits
-      if (remainingCredits < 1) {
-        console.log('用户积分不足:', remainingCredits)
-        return NextResponse.json(
-          { error: '积分不足，请购买会员' },
-          { status: 402 }
-        )
-      }
-      console.log('用户当前剩余积分:', remainingCredits)
+      currentUserCredits = newCredits
     }
+
+    // 检查积分是否足够
+    const remainingCredits = currentUserCredits.total_credits - currentUserCredits.used_credits
+    if (remainingCredits < 1) {
+      console.log('用户积分不足:', remainingCredits)
+      return NextResponse.json(
+        { error: '积分不足，请购买会员' },
+        { status: 402 }
+      )
+    }
+    console.log('用户当前剩余积分:', remainingCredits)
 
     // 如果没有sessionId，创建一个新的会话
     let actualSessionId = sessionId
@@ -217,7 +219,7 @@ export async function POST(request: NextRequest) {
       console.log('没有会话ID，跳过保存聊天记录')
     }
 
-    // 扣除用户积分
+    // 扣除用户积分（必须成功，否则返回错误）
     try {
       // 使用管理员权限的supabase客户端
       const { createClient } = await import('@supabase/supabase-js')
@@ -232,8 +234,8 @@ export async function POST(request: NextRequest) {
         }
       )
 
-      const newUsedCredits = userCredits ? userCredits.used_credits + 1 : 1
-      console.log(`准备扣除积分: ${userCredits?.used_credits || 0} + 1 = ${newUsedCredits}`)
+      const newUsedCredits = currentUserCredits.used_credits + 1
+      console.log(`准备扣除积分: ${currentUserCredits.used_credits} + 1 = ${newUsedCredits}`)
 
       const { error: creditUpdateError } = await supabaseAdmin
         .from('user_credits')
@@ -245,11 +247,16 @@ export async function POST(request: NextRequest) {
 
       if (creditUpdateError) {
         console.error('扣除积分失败:', creditUpdateError)
+        throw new Error('扣除积分失败，请重试')
       } else {
         console.log('成功扣除1积分，新的used_credits:', newUsedCredits)
       }
-    } catch (creditError) {
+    } catch (creditError: any) {
       console.error('积分操作失败:', creditError)
+      return NextResponse.json(
+        { error: creditError.message || '扣除积分失败' },
+        { status: 500 }
+      )
     }
 
     // 返回简化的响应
