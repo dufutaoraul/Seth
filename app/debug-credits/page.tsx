@@ -56,8 +56,8 @@ export default function DebugCreditsPage() {
             assistantMessages: messages?.filter(m => m.message_type === 'assistant').length || 0
           }
         })
-      } catch (error) {
-        setData({ error: error.message })
+      } catch (error: any) {
+        setData({ error: error?.message || '未知错误' })
       } finally {
         setLoading(false)
       }
