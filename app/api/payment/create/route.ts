@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { createPaymentUrl, generateOrderNo, MEMBERSHIP_PLANS, MembershipType } from '@/lib/zpay'
+import { createPaymentUrl, generateOrderNo, MEMBERSHIP_PLANS, CREDIT_PACKS, MembershipType, CreditPackType, ProductType } from '@/lib/zpay'
 
 // 强制动态路由
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const { membershipType, paymentMethod = 'alipay' } = await request.json()
+    const { productType, paymentMethod = 'alipay' } = await request.json()
 
-    if (!membershipType || !MEMBERSHIP_PLANS[membershipType as MembershipType]) {
+    // 检查是会员套餐还是积分包
+    const isMembership = productType in MEMBERSHIP_PLANS
+    const isCreditPack = productType in CREDIT_PACKS
+
+    if (!productType || (!isMembership && !isCreditPack)) {
       return NextResponse.json(
-        { error: '无效的会员类型' },
+        { error: '无效的产品类型' },
         { status: 400 }
       )
     }
@@ -42,10 +46,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 获取套餐信息
-    const plan = MEMBERSHIP_PLANS[membershipType as MembershipType]
+    // 获取产品信息
+    const product = isMembership
+      ? MEMBERSHIP_PLANS[productType as MembershipType]
+      : CREDIT_PACKS[productType as CreditPackType]
 
-    if (plan.price === 0) {
+    if (product.price === 0) {
       return NextResponse.json(
         { error: '免费套餐无需支付' },
         { status: 400 }
@@ -62,9 +68,10 @@ export async function POST(request: NextRequest) {
         {
           user_id: user.id,
           order_no: orderNo,
-          membership_type: membershipType,
-          amount_yuan: plan.price,
-          credits_to_add: plan.credits,
+          membership_type: isMembership ? productType : null,
+          order_type: product.type,
+          amount_yuan: product.price,
+          credits_to_add: product.credits,
           payment_method: paymentMethod,
           payment_status: 'pending',
         },
@@ -82,8 +89,8 @@ export async function POST(request: NextRequest) {
 
     // 生成支付URL
     const paymentUrl = createPaymentUrl(
-      plan.price,
-      `${membershipType} - ${plan.credits}次对话`,
+      product.price,
+      `${productType} - ${product.credits}次对话`,
       orderNo,
       paymentMethod as 'alipay' | 'wxpay' | 'qqpay'
     )
@@ -92,7 +99,7 @@ export async function POST(request: NextRequest) {
       orderId: paymentOrder.id,
       orderNo,
       paymentUrl,
-      amount: plan.price,
+      amount: product.price,
     })
   } catch (error) {
     console.error('创建支付订单错误:', error)

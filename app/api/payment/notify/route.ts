@@ -124,27 +124,39 @@ async function handlePaymentNotify(params: Record<string, any>) {
       return new Response('fail', { status: 500 })
     }
 
-    // 计算新的会员到期时间
-    const now = new Date()
-    const currentExpiry = currentCredits.membership_expires_at
-      ? new Date(currentCredits.membership_expires_at)
-      : now
-
-    // 如果当前会员还没过期，从过期时间开始延长；否则从现在开始
-    const startDate = currentExpiry > now ? currentExpiry : now
-    const newExpiry = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30天
-
-    // 更新用户积分和会员信息
+    // 更新用户积分
     const newTotalCredits = currentCredits.total_credits + paymentOrder.credits_to_add
     console.log(`积分更新: ${currentCredits.total_credits} + ${paymentOrder.credits_to_add} = ${newTotalCredits}`)
 
+    // 区分会员套餐和积分包
+    const isMembershipOrder = paymentOrder.order_type === 'membership'
+
+    let updateData: any = {
+      total_credits: newTotalCredits, // 积分总是累加
+    }
+
+    // 只有购买会员套餐时才更新会员等级和到期时间
+    if (isMembershipOrder && paymentOrder.membership_type) {
+      const now = new Date()
+      const currentExpiry = currentCredits.membership_expires_at
+        ? new Date(currentCredits.membership_expires_at)
+        : now
+
+      // 如果当前会员还没过期，从过期时间开始延长；否则从现在开始
+      const startDate = currentExpiry > now ? currentExpiry : now
+      const newExpiry = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000) // 30天
+
+      updateData.current_membership = paymentOrder.membership_type
+      updateData.membership_expires_at = newExpiry.toISOString()
+
+      console.log(`会员套餐订单，更新会员等级为: ${paymentOrder.membership_type}，到期时间: ${newExpiry.toISOString()}`)
+    } else {
+      console.log('积分包订单，仅增加积分，不改变会员等级和到期时间')
+    }
+
     const { error: updateCreditsError } = await supabaseAdmin
       .from('user_credits')
-      .update({
-        total_credits: newTotalCredits, // 累加积分，不是替换
-        current_membership: paymentOrder.membership_type,
-        membership_expires_at: newExpiry.toISOString(),
-      })
+      .update(updateData)
       .eq('user_id', paymentOrder.user_id)
 
     if (updateCreditsError) {

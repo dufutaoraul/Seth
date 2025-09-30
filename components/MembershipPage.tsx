@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { UserCredits, PaymentOrder, supabase } from '@/lib/supabase'
-import { MEMBERSHIP_PLANS, MembershipType } from '@/lib/zpay'
+import { MEMBERSHIP_PLANS, CREDIT_PACKS, MembershipType, CreditPackType, ProductType } from '@/lib/zpay'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
@@ -29,10 +29,10 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
   const [showPaymentHistory, setShowPaymentHistory] = useState(false)
   const router = useRouter()
 
-  const handlePurchase = async (membershipType: MembershipType) => {
-    if (membershipType === '普通会员') return
+  const handlePurchase = async (productType: ProductType) => {
+    if (productType === '普通会员') return
 
-    setLoading(membershipType)
+    setLoading(productType)
 
     try {
       // 获取用户token
@@ -50,7 +50,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          membershipType,
+          productType,
           paymentMethod: 'alipay', // 默认支付宝
         }),
       })
@@ -265,6 +265,66 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
             })}
           </div>
         </motion.div>
+
+        {/* 积分包 - 仅对付费会员显示 */}
+        {userCredits && userCredits.current_membership !== '普通会员' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mb-8"
+          >
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-2">购买积分包</h2>
+              <p className="text-gray-400">增加对话次数，不改变会员等级和到期时间</p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              {Object.entries(CREDIT_PACKS).map(([type, pack]) => {
+                const packType = type as CreditPackType
+
+                return (
+                  <motion.div
+                    key={type}
+                    whileHover={{ scale: 1.02 }}
+                    className="relative rounded-2xl p-6 border-2 border-blue-500 bg-blue-900/20"
+                  >
+                    <div className="text-center">
+                      <div className="flex justify-center mb-4 text-blue-400">
+                        <CreditCard className="w-8 h-8" />
+                      </div>
+
+                      <h3 className="text-xl font-bold mb-2">{type}</h3>
+
+                      <div className="text-3xl font-bold mb-4">
+                        {pack.credits}
+                        <span className="text-lg text-gray-400">次对话</span>
+                      </div>
+
+                      <div className="text-2xl font-bold text-blue-400 mb-4">
+                        ¥{pack.price}
+                      </div>
+
+                      <button
+                        onClick={() => handlePurchase(packType)}
+                        disabled={loading === packType}
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading === packType ? (
+                          <div className="flex items-center justify-center">
+                            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                            创建订单中...
+                          </div>
+                        ) : (
+                          `立即购买`
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* 查询订单按钮 */}
         <motion.div

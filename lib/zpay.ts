@@ -101,9 +101,18 @@ export function verifyNotifySign(params: Record<string, any>): boolean {
 
 // 会员套餐配置 (测试价格)
 export const MEMBERSHIP_PLANS = {
-  '普通会员': { credits: 15, price: 0 },
-  '标准会员': { credits: 3, price: 1 },    // 测试价格 1元 = 3积分
-  '高级会员': { credits: 6, price: 2 },    // 测试价格 2元 = 6积分
+  '普通会员': { credits: 15, price: 0, type: 'membership' as const },
+  '标准会员': { credits: 3, price: 1, type: 'membership' as const },    // 测试价格 1元 = 3积分
+  '高级会员': { credits: 6, price: 2, type: 'membership' as const },    // 测试价格 2元 = 6积分
 } as const
 
 export type MembershipType = keyof typeof MEMBERSHIP_PLANS
+
+// 积分包配置 (不改变会员等级，只增加积分)
+export const CREDIT_PACKS = {
+  '小积分包': { credits: 3, price: 1, type: 'credit_pack' as const },
+  '大积分包': { credits: 6, price: 2, type: 'credit_pack' as const },
+} as const
+
+export type CreditPackType = keyof typeof CREDIT_PACKS
+export type ProductType = MembershipType | CreditPackType
