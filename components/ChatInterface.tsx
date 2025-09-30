@@ -174,12 +174,15 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
   const sendMessage = async () => {
     if (!inputMessage.trim() || loading) return
 
-    // 检查积分
+    // 检查积分（考虑即将扣除的1积分）
     if (!credits || credits.remaining_credits < 1) {
       toast.error('积分不足，请购买会员')
+      console.log('积分不足，跳转到会员页面')
       router.push('/membership-client')
       return
     }
+
+    console.log('积分检查通过，当前剩余:', credits.remaining_credits)
 
     // 如果没有当前会话，创建一个简单的临时会话
     let sessionToUse = currentSession
@@ -267,11 +270,10 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         data.assistantMessage,
       ])
 
-      // 立即更新积分显示
-      console.log('=== 开始刷新用户积分 ===')
+      // 立即更新积分显示（乐观更新）
+      console.log('=== 开始积分乐观更新 ===')
       console.log('发送前积分状态:', JSON.stringify(credits, null, 2))
 
-      // 立即减1积分显示（乐观更新）
       if (credits && credits.remaining_credits > 0) {
         const optimisticCredits = {
           ...credits,
@@ -280,22 +282,10 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         }
         console.log('执行乐观更新:', JSON.stringify(optimisticCredits, null, 2))
         setCredits(optimisticCredits)
+        console.log('积分已更新为:', optimisticCredits.remaining_credits)
       } else {
         console.warn('积分状态异常，无法执行乐观更新:', credits)
       }
-
-      // 延迟获取服务器最新数据确认（确保服务器处理完成）
-      setTimeout(async () => {
-        console.log('开始获取服务器最新积分...')
-        const updatedCredits = await loadUserCredits()
-        console.log('API返回的最新积分:', JSON.stringify(updatedCredits, null, 2))
-        if (updatedCredits) {
-          setCredits(updatedCredits)
-          console.log('积分状态已确认更新到:', updatedCredits.remaining_credits)
-        } else {
-          console.error('获取积分失败，保持乐观更新的积分显示')
-        }
-      }, 1000) // 1秒后获取最新数据
 
       // 如果创建了新会话，更新当前会话
       if (data.sessionId && (!currentSession || currentSession.id !== data.sessionId)) {
