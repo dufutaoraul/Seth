@@ -34,8 +34,15 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.substring(7)
 
-    // 创建 Supabase 客户端并验证用户
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // 创建 Supabase 客户端并设置认证上下文
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    })
+
     const {
       data: { user },
       error: authError,
