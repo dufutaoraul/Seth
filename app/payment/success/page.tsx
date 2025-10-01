@@ -10,6 +10,7 @@ import PaymentSuccessPage from '@/components/PaymentSuccessPage'
 export default function PaymentSuccess() {
   const [user, setUser] = useState<User | null>(null)
   const [userCredits, setUserCredits] = useState<UserCredits | null>(null)
+  const [orderType, setOrderType] = useState<string | null>(null) // 订单类型
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -75,6 +76,20 @@ export default function PaymentSuccess() {
           console.log('支付成功页面获取到的用户积分:', userCredits)
           setUserCredits(userCredits)
         }
+
+        // 获取最新的订单信息，判断购买类型
+        if (out_trade_no) {
+          const { data: order, error: orderError } = await supabase
+            .from('payment_orders')
+            .select('order_type, membership_type, credits_to_add')
+            .eq('order_no', out_trade_no)
+            .single()
+
+          if (!orderError && order) {
+            console.log('订单信息:', order)
+            setOrderType(order.order_type)
+          }
+        }
       } catch (error) {
         console.error('检查用户状态失败:', error)
         router.push('/')
@@ -98,5 +113,5 @@ export default function PaymentSuccess() {
     return null // 将会重定向到首页
   }
 
-  return <PaymentSuccessPage user={user} userCredits={userCredits} />
+  return <PaymentSuccessPage user={user} userCredits={userCredits} orderType={orderType} />
 }

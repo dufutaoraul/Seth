@@ -9,10 +9,25 @@ import { CheckCircle, Sparkles, ArrowRight, Home } from 'lucide-react'
 interface Props {
   user: User
   userCredits: UserCredits | null
+  orderType: string | null
 }
 
-export default function PaymentSuccessPage({ user, userCredits }: Props) {
+export default function PaymentSuccessPage({ user, userCredits, orderType }: Props) {
   const router = useRouter()
+
+  // 根据订单类型生成提示文案
+  const getSuccessMessage = () => {
+    if (orderType === 'credit_pack') {
+      return '积分充值成功！'
+    } else if (orderType === 'upgrade') {
+      return `恭喜您成功升级为 ${userCredits?.current_membership}！`
+    } else if (orderType === 'membership') {
+      return `恭喜您成功开通 ${userCredits?.current_membership}！`
+    } else {
+      // 默认文案
+      return '支付成功！'
+    }
+  }
 
   return (
     <div className="min-h-screen bg-seth-dark flex items-center justify-center px-4">
@@ -42,10 +57,12 @@ export default function PaymentSuccessPage({ user, userCredits }: Props) {
           transition={{ delay: 0.4 }}
           className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 border border-gray-700 mb-8"
         >
-          <h1 className="text-3xl font-bold text-seth-gold mb-4">支付成功！</h1>
-          <p className="text-gray-300 mb-6">
-            恭喜您成功升级为 <span className="text-seth-orange font-semibold">{userCredits?.current_membership}</span>
-          </p>
+          <h1 className="text-3xl font-bold text-seth-gold mb-4">{getSuccessMessage()}</h1>
+          {orderType !== 'credit_pack' && (
+            <p className="text-gray-300 mb-6">
+              现在您已是 <span className="text-seth-orange font-semibold">{userCredits?.current_membership}</span>
+            </p>
+          )}
 
           {/* 权益信息 */}
           <div className="space-y-4">
