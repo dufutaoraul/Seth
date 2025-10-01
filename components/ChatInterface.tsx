@@ -22,6 +22,8 @@ import {
   Trash2,
   Check,
   XCircle,
+  Copy,
+  Download,
 } from 'lucide-react'
 
 interface Props {
@@ -452,6 +454,55 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     }
   }
 
+  // 复制消息内容
+  const copyMessage = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      toast.success('已复制到剪贴板')
+    } catch (error) {
+      console.error('复制失败:', error)
+      toast.error('复制失败，请重试')
+    }
+  }
+
+  // 导出历史记录
+  const exportHistory = () => {
+    if (!currentSession || messages.length === 0) {
+      toast.error('当前没有对话记录可导出')
+      return
+    }
+
+    try {
+      // 生成文本格式的对话记录
+      let content = `与赛斯对话 - ${currentSession.title}\n`
+      content += `导出时间：${new Date().toLocaleString()}\n`
+      content += `${'='.repeat(50)}\n\n`
+
+      messages.forEach((msg) => {
+        const speaker = msg.message_type === 'user' ? '我' : '赛斯'
+        const time = new Date(msg.created_at).toLocaleString()
+        content += `【${speaker}】 ${time}\n`
+        content += `${msg.content}\n\n`
+      })
+
+      // 创建下载链接
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `赛斯对话-${currentSession.title}-${new Date().toLocaleDateString()}.txt`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      toast.success('对话记录已导出')
+    } catch (error) {
+      console.error('导出失败:', error)
+      toast.error('导出失败，请重试')
+    }
+  }
+
   // 登出
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -664,6 +715,17 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
               </h1>
             </div>
             <div className="hidden lg:flex items-center space-x-4">
+              {/* 导出按钮 */}
+              {currentSession && messages.length > 0 && (
+                <button
+                  onClick={exportHistory}
+                  className="flex items-center space-x-1 text-gray-400 hover:text-white transition-colors"
+                  title="导出对话记录"
+                >
+                  <Download size={18} />
+                  <span className="text-sm">导出</span>
+                </button>
+              )}
               {creditsLoading ? (
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-400">积分: </span>
@@ -735,14 +797,26 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                         <Bot className="w-5 h-5" />
                       )}
                     </div>
-                    <div
-                      className={`px-4 py-3 rounded-2xl ${
-                        message.message_type === 'user'
-                          ? 'bg-seth-gold text-seth-dark rounded-br-sm'
-                          : 'bg-gray-700 text-white rounded-bl-sm'
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    <div className="relative group">
+                      <div
+                        className={`px-4 py-3 rounded-2xl ${
+                          message.message_type === 'user'
+                            ? 'bg-seth-gold text-seth-dark rounded-br-sm'
+                            : 'bg-gray-700 text-white rounded-bl-sm'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      </div>
+                      {/* 复制按钮 - 只在赛斯的回复上显示 */}
+                      {message.message_type === 'assistant' && (
+                        <button
+                          onClick={() => copyMessage(message.content)}
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-600 hover:bg-gray-500 text-white p-1.5 rounded"
+                          title="复制"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
