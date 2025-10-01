@@ -18,6 +18,10 @@ import {
   Menu,
   X,
   AlertCircle,
+  Edit2,
+  Trash2,
+  Check,
+  XCircle,
 } from 'lucide-react'
 
 interface Props {
@@ -35,6 +39,8 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
   const [credits, setCredits] = useState(userCredits)
   const [creditsLoading, setCreditsLoading] = useState(true) // 新增：积分加载状态
   const [sidebarOpen, setSidebarOpen] = useState(true) // 默认打开侧边栏显示会话列表
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null) // 正在编辑的会话ID
+  const [editingTitle, setEditingTitle] = useState('') // 编辑中的标题
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -345,6 +351,107 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     }
   }
 
+  // 开始编辑会话标题
+  const startEditingSession = (session: ChatSession) => {
+    setEditingSessionId(session.id)
+    setEditingTitle(session.title)
+  }
+
+  // 保存编辑的标题
+  const saveSessionTitle = async (sessionId: string) => {
+    if (!editingTitle.trim()) {
+      toast.error('标题不能为空')
+      return
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        toast.error('认证过期，请重新登录')
+        return
+      }
+
+      const response = await fetch('/api/chat-session/update', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          sessionId,
+          title: editingTitle.trim(),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('更新标题失败')
+      }
+
+      // 更新本地状态
+      setSessions(sessions.map(s =>
+        s.id === sessionId ? { ...s, title: editingTitle.trim() } : s
+      ))
+
+      if (currentSession?.id === sessionId) {
+        setCurrentSession({ ...currentSession, title: editingTitle.trim() })
+      }
+
+      setEditingSessionId(null)
+      toast.success('标题已更新')
+    } catch (error) {
+      console.error('保存标题失败:', error)
+      toast.error('保存失败，请重试')
+    }
+  }
+
+  // 取消编辑
+  const cancelEditing = () => {
+    setEditingSessionId(null)
+    setEditingTitle('')
+  }
+
+  // 删除会话
+  const deleteSession = async (sessionId: string) => {
+    if (!confirm('确定要删除这个对话吗？删除后无法恢复。')) {
+      return
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        toast.error('认证过期，请重新登录')
+        return
+      }
+
+      const response = await fetch('/api/chat-session/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ sessionId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('删除失败')
+      }
+
+      // 更新本地状态
+      setSessions(sessions.filter(s => s.id !== sessionId))
+
+      // 如果删除的是当前会话，清空消息
+      if (currentSession?.id === sessionId) {
+        setCurrentSession(null)
+        setMessages([])
+      }
+
+      toast.success('对话已删除')
+    } catch (error) {
+      console.error('删除会话失败:', error)
+      toast.error('删除失败，请重试')
+    }
+  }
+
   // 登出
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -425,20 +532,94 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
               </h3>
               <div className="space-y-2">
                 {sessions.map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    onClick={() => selectSession(session)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                    className={`relative group rounded-lg transition-colors ${
                       currentSession?.id === session.id
                         ? 'bg-seth-gold text-seth-dark'
-                        : 'bg-gray-700 hover:bg-gray-600 text-white'
+                        : 'bg-gray-700 text-white'
                     }`}
                   >
-                    <div className="truncate font-medium">{session.title}</div>
-                    <div className="text-xs opacity-75 mt-1">
-                      {new Date(session.updated_at).toLocaleDateString()}
-                    </div>
-                  </button>
+                    {editingSessionId === session.id ? (
+                      // 编辑模式
+                      <div className="p-3">
+                        <input
+                          type="text"
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          className="w-full bg-gray-800 text-white px-2 py-1 rounded border border-gray-600 focus:border-seth-gold focus:outline-none"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              saveSessionTitle(session.id)
+                            } else if (e.key === 'Escape') {
+                              cancelEditing()
+                            }
+                          }}
+                        />
+                        <div className="flex items-center justify-end space-x-2 mt-2">
+                          <button
+                            onClick={() => saveSessionTitle(session.id)}
+                            className="p-1 hover:bg-green-600 rounded transition-colors"
+                            title="保存"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            className="p-1 hover:bg-red-600 rounded transition-colors"
+                            title="取消"
+                          >
+                            <XCircle size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // 正常显示模式
+                      <>
+                        <button
+                          onClick={() => selectSession(session)}
+                          className="w-full text-left p-3"
+                        >
+                          <div className="truncate font-medium pr-16">{session.title}</div>
+                          <div className="text-xs opacity-75 mt-1">
+                            {new Date(session.updated_at).toLocaleDateString()}
+                          </div>
+                        </button>
+                        {/* 悬停显示的操作按钮 */}
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startEditingSession(session)
+                            }}
+                            className={`p-1.5 rounded transition-colors ${
+                              currentSession?.id === session.id
+                                ? 'hover:bg-yellow-600'
+                                : 'hover:bg-gray-600'
+                            }`}
+                            title="编辑标题"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteSession(session.id)
+                            }}
+                            className={`p-1.5 rounded transition-colors ${
+                              currentSession?.id === session.id
+                                ? 'hover:bg-red-600'
+                                : 'hover:bg-gray-600'
+                            }`}
+                            title="删除对话"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
