@@ -34,32 +34,47 @@ export default function PaymentSuccess() {
         const trade_no = urlParams.get('trade_no')
         const trade_status = urlParams.get('trade_status')
 
-        // 如果有回调参数，调用后端处理订单
+        // ⭐ 如果有回调参数，强制处理订单（包含重试机制）
         if (out_trade_no && trade_status === 'TRADE_SUCCESS') {
           console.log('检测到支付成功回调，处理订单:', out_trade_no)
 
-          try {
-            // 将所有URL参数传给后端notify API
-            const params: Record<string, string> = {}
-            urlParams.forEach((value, key) => {
-              params[key] = value
-            })
+          // 重试机制：最多尝试3次
+          let retryCount = 0
+          let success = false
 
-            // 调用notify API处理订单
-            const notifyResponse = await fetch('/api/payment/notify?' + urlParams.toString(), {
-              method: 'GET',
-            })
+          while (retryCount < 3 && !success) {
+            try {
+              retryCount++
+              console.log(`第${retryCount}次尝试处理订单...`)
 
-            const notifyResult = await notifyResponse.text()
-            console.log('订单处理结果:', notifyResult)
+              // 调用notify API处理订单
+              const notifyResponse = await fetch('/api/payment/notify?' + urlParams.toString(), {
+                method: 'GET',
+              })
 
-            if (notifyResult === 'success') {
-              console.log('订单处理成功，等待2秒后刷新积分')
-              // 等待2秒让数据库更新完成
-              await new Promise(resolve => setTimeout(resolve, 2000))
+              const notifyResult = await notifyResponse.text()
+              console.log('订单处理结果:', notifyResult)
+
+              if (notifyResult === 'success') {
+                success = true
+                console.log('订单处理成功！')
+                // 等待2秒让数据库更新完成
+                await new Promise(resolve => setTimeout(resolve, 2000))
+              } else {
+                console.warn('订单处理返回非success结果，准备重试...')
+                await new Promise(resolve => setTimeout(resolve, 1000))
+              }
+            } catch (notifyError) {
+              console.error(`第${retryCount}次尝试失败:`, notifyError)
+              if (retryCount < 3) {
+                await new Promise(resolve => setTimeout(resolve, 1000))
+              }
             }
-          } catch (notifyError) {
-            console.error('处理订单回调失败:', notifyError)
+          }
+
+          if (!success) {
+            console.error('订单处理失败，已尝试3次')
+            // 即使失败也继续加载页面，用户可以联系客服手动处理
           }
         }
 
@@ -104,7 +119,13 @@ export default function PaymentSuccess() {
   if (loading) {
     return (
       <div className="min-h-screen bg-seth-dark flex items-center justify-center">
-        <div className="text-seth-gold text-xl">加载中...</div>
+        <div className="text-center">
+          <div className="text-seth-gold text-xl mb-4">正在处理订单...</div>
+          <div className="text-gray-400 text-sm">请稍候，不要关闭此页面</div>
+          <div className="mt-4">
+            <div className="w-16 h-16 border-4 border-seth-gold border-t-transparent rounded-full animate-spin mx-auto"></div>
+          </div>
+        </div>
       </div>
     )
   }

@@ -171,18 +171,10 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     }
   }
 
-  // 创建新会话（简化版，不使用数据库）
+  // 创建新会话
   const createNewSession = async () => {
-    const newSession: ChatSession = {
-      id: `session-${Date.now()}`,
-      user_id: user.id,
-      title: '新对话',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-
-    setSessions([newSession, ...sessions])
-    setCurrentSession(newSession)
+    // 清空当前会话和消息，下次发送消息时会在后端自动创建新会话
+    setCurrentSession(null)
     setMessages([])
     setSidebarOpen(false)
   }
@@ -216,18 +208,8 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
 
     console.log('积分检查通过，当前剩余:', credits.remaining_credits)
 
-    // 如果没有当前会话，创建一个简单的临时会话
-    let sessionToUse = currentSession
-    if (!sessionToUse) {
-      sessionToUse = {
-        id: `session-${Date.now()}`,
-        user_id: user.id,
-        title: '新对话',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }
-      setCurrentSession(sessionToUse)
-    }
+    // 如果没有当前会话，sessionId 传 null，后端会自动创建
+    // 不在前端创建临时会话，避免 ID 格式问题
 
     const userMessage = inputMessage
     setInputMessage('')
