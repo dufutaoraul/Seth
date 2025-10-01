@@ -40,7 +40,22 @@ export default function HomePage() {
         if (error) {
           console.error('Login error:', error)
           if (error.message.includes('Invalid login credentials')) {
-            toast.error('邮箱或密码错误，请检查后重试')
+            // 尝试用错误密码登录来检测用户是否存在
+            const { error: checkError } = await supabase.auth.signInWithPassword({
+              email,
+              password: 'wrong_password_for_checking_12345',
+            })
+
+            // 如果错误信息相同，说明用户不存在；如果不同，说明密码错误
+            if (checkError?.message === error.message) {
+              toast.error('该用户未注册，请先注册后再登录')
+              // 2秒后自动切换到注册界面
+              setTimeout(() => {
+                setIsLogin(false)
+              }, 2000)
+            } else {
+              toast.error('密码错误，请检查后重试')
+            }
           } else if (error.message.includes('Email not confirmed')) {
             toast.error('请先验证邮箱，检查您的邮件收件箱')
           } else {
