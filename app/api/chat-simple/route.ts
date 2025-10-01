@@ -106,17 +106,20 @@ export async function POST(request: NextRequest) {
       const expireDate = new Date(currentUserCredits.membership_expires_at)
 
       if (expireDate <= now) {
-        // 付费会员过期：降级为免费用户，赠送15条永久有效积分
-        console.log('付费会员已过期，降级为免费用户并赠送15条永久积分:', {
+        // 付费会员过期：清零所有积分，重置为15条永久免费积分
+        console.log('付费会员已过期，清零积分并重置为15条永久免费积分:', {
           user_id: user.id,
           membership: currentUserCredits.current_membership,
-          expired_at: currentUserCredits.membership_expires_at
+          expired_at: currentUserCredits.membership_expires_at,
+          old_total_credits: currentUserCredits.total_credits,
+          old_used_credits: currentUserCredits.used_credits
         })
 
         const { error: downgradeError } = await supabaseAdmin
           .from('user_credits')
           .update({
-            total_credits: currentUserCredits.total_credits + 15, // 在现有积分基础上加15
+            total_credits: 15, // 清零后重置为15条
+            used_credits: 0,   // 已用积分清零
             current_membership: '普通会员',
             membership_expires_at: null, // 免费积分永久有效，清除过期时间
           })
@@ -125,10 +128,11 @@ export async function POST(request: NextRequest) {
         if (downgradeError) {
           console.error('降级失败:', downgradeError)
         } else {
-          console.log('降级成功，已赠送15条永久有效积分')
+          console.log('降级成功，已清零旧积分并重置为15条永久免费积分')
           currentUserCredits = {
             ...currentUserCredits,
-            total_credits: currentUserCredits.total_credits + 15,
+            total_credits: 15,
+            used_credits: 0,
             current_membership: '普通会员',
             membership_expires_at: null,
           }

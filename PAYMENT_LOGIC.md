@@ -17,13 +17,16 @@
 
 **付费会员过期时：**
 - 降级为普通会员
-- **再次赠送15条免费积分**（在现有积分基础上+15）
+- **⚠️ 清零所有积分**（包括未用完的付费积分）
+- **重置为15条永久免费积分**
 - 这15条积分同样**永久有效**
 
 **重要说明：**
 - ❌ 没有"每月重置15积分"的逻辑
 - ❌ 免费用户不会定期获得积分
+- ❌ 付费会员到期后，剩余积分会被清零（不会保留）
 - ✅ 免费积分只在两种情况下赠送：新用户注册 & 付费会员过期
+- ✅ 所有普通会员的积分状态统一：15条永久积分
 
 ---
 
@@ -173,9 +176,10 @@ if (user.membership_expires_at && user.current_membership !== '普通会员') {
   const now = new Date()
 
   if (expireDate <= now) {
-    // 付费会员过期处理：
+    // 付费会员过期处理：清零所有积分，重置为15条永久免费积分
     await db.update({
-      total_credits: user.total_credits + 15,  // 在现有积分基础上+15
+      total_credits: 15,        // 清零后重置为15条
+      used_credits: 0,          // 已用积分清零
       current_membership: '普通会员',
       membership_expires_at: null,  // 清除过期时间，免费积分永久有效
     })
@@ -184,27 +188,33 @@ if (user.membership_expires_at && user.current_membership !== '普通会员') {
 ```
 
 ### 过期示例
-**用户A购买标准会员：**
+**用户A购买标准会员，用了一部分积分后到期：**
 ```javascript
-// 购买前（免费用户）
+// 购买前（免费用户，用了5条）
 { total_credits: 15, used_credits: 5, current_membership: '普通会员', membership_expires_at: null }
 
-// 购买后（标准会员）
-{ total_credits: 10 + 3 = 13, used_credits: 5, current_membership: '标准会员', membership_expires_at: '2025-10-31' }
+// 购买后（标准会员，获得3积分）
+{ total_credits: 15 + 3 = 18, used_credits: 5, current_membership: '标准会员', membership_expires_at: '2025-10-31' }
 
-// 30天后过期（自动降级）
-{ total_credits: 13 + 15 = 28, used_credits: 5, current_membership: '普通会员', membership_expires_at: null }
+// 30天后过期（剩余13条积分全部清零，重置为15条）
+{ total_credits: 15, used_credits: 0, current_membership: '普通会员', membership_expires_at: null }
+// ⚠️ 剩余的13条积分被清零！重新获得15条永久免费积分
 ```
 
-**用户B是高级会员，积分用完后过期：**
+**用户B购买高级会员，只用了100条积分就到期：**
 ```javascript
-// 过期前（积分已用完）
-{ total_credits: 500, used_credits: 500, current_membership: '高级会员', membership_expires_at: '2025-10-31' }
+// 过期前（剩余400条积分未使用）
+{ total_credits: 500, used_credits: 100, current_membership: '高级会员', membership_expires_at: '2025-10-31' }
 
-// 过期后
-{ total_credits: 500 + 15 = 515, used_credits: 500, current_membership: '普通会员', membership_expires_at: null }
-// 剩余可用积分：515 - 500 = 15条
+// 过期后（剩余400条积分全部清零！）
+{ total_credits: 15, used_credits: 0, current_membership: '普通会员', membership_expires_at: null }
+// ⚠️ 剩余的400条积分全部清零！重新获得15条永久免费积分
 ```
+
+**设计理念：**
+- 付费会员的积分有30天有效期，过期清零是合理的
+- 降级后统一重置为15条永久积分，状态清晰统一
+- 鼓励用户在有效期内使用完积分
 
 ---
 
@@ -343,7 +353,7 @@ export const MEMBERSHIP_PLANS = {
 **A:** 不会！免费积分永久有效，用完为止。
 
 ### Q2: 付费会员过期后，原有剩余积分会清零吗？
-**A:** 不会！过期时会在原有积分基础上+15，所有积分永久有效。
+**A:** 会！付费积分有30天有效期，过期后所有积分清零，重置为15条永久免费积分。
 
 ### Q3: 为什么高级会员没有特殊功能？
 **A:** 高级会员的"高级思维引导"等功能仅为营销话术，实际AI服务与标准会员相同，差异仅在积分数量。
@@ -357,6 +367,11 @@ export const MEMBERSHIP_PLANS = {
 ---
 
 ## 📝 更新日志
+
+### v2.1 (2025-10-01)
+- **重大修正**：付费会员过期时清零所有积分（不保留剩余积分）
+- 过期后统一重置为15条永久免费积分
+- 所有普通会员的积分状态完全一致
 
 ### v2.0 (2025-10-01)
 - **重大修正**：删除免费用户30天重置逻辑
