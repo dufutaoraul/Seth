@@ -117,17 +117,33 @@ export async function POST(request: NextRequest) {
 
               try {
                 const parsed = JSON.parse(data)
+                console.log('Dify SSE Event:', parsed.event, parsed)
 
-                if (parsed.event === 'message') {
-                  // 发送消息块到前端
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                    type: 'content',
-                    content: parsed.answer
-                  })}\n\n`))
-                  fullAnswer = parsed.answer
-                } else if (parsed.event === 'message_end') {
+                // agent_thought 事件：AI思考过程
+                if (parsed.event === 'agent_thought') {
+                  // 可以显示思考过程，暂时忽略
+                }
+                // agent_message 或 message 事件：增量或完整内容
+                else if (parsed.event === 'agent_message' || parsed.event === 'message') {
+                  if (parsed.answer) {
+                    console.log('发送内容到前端，长度:', parsed.answer.length)
+                    // 发送消息块到前端
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      type: 'content',
+                      content: parsed.answer
+                    })}\n\n`))
+                    fullAnswer = parsed.answer
+                  }
+                }
+                // message_end 事件：消息结束
+                else if (parsed.event === 'message_end') {
                   difyConversationId = parsed.conversation_id
                   difyMessageId = parsed.id
+                  console.log('消息结束，最终答案长度:', fullAnswer.length)
+                  // 确保最终答案被保存
+                  if (parsed.answer) {
+                    fullAnswer = parsed.answer
+                  }
                 }
               } catch (e) {
                 console.error('解析SSE数据失败:', e)
