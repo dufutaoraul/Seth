@@ -44,7 +44,7 @@ export default function AdminPage() {
     credits: any
     recent_orders: OrderInfo[]
   } | null>(null)
-  const [loadingOrders, setLoadingOrders] = useState(false)
+  const [loadingOrdersEmail, setLoadingOrdersEmail] = useState<string | null>(null) // 修改：记录正在加载订单的用户邮箱
   const router = useRouter()
 
   // 管理员密码
@@ -85,7 +85,7 @@ export default function AdminPage() {
 
   const loadUserOrders = async (email: string) => {
     try {
-      setLoadingOrders(true)
+      setLoadingOrdersEmail(email) // 标记正在加载的用户
       const response = await fetch(`/api/payment/check-order?email=${email}`)
 
       if (response.ok) {
@@ -99,7 +99,7 @@ export default function AdminPage() {
       console.error('加载订单失败:', error)
       alert('加载订单失败')
     } finally {
-      setLoadingOrders(false)
+      setLoadingOrdersEmail(null) // 清除加载状态
     }
   }
 
@@ -256,10 +256,10 @@ export default function AdminPage() {
                     <td className="p-4">
                       <button
                         onClick={() => loadUserOrders(user.email)}
-                        disabled={loadingOrders}
+                        disabled={loadingOrdersEmail === user.email}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition disabled:opacity-50"
                       >
-                        {loadingOrders ? '加载中...' : '查看订单'}
+                        {loadingOrdersEmail === user.email ? '加载中...' : '查看订单'}
                       </button>
                     </td>
                   </tr>
