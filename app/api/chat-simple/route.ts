@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       currentUserCredits = newCredits
     }
 
-    // ⭐ 检查会员是否过期（包括免费用户和付费用户）
+    // ⭐ 检查付费会员是否过期
     const now = new Date()
 
     // 使用管理员权限执行过期检查
@@ -101,91 +101,37 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    if (currentUserCredits.membership_expires_at) {
+    // 只检查付费会员是否过期
+    if (currentUserCredits.membership_expires_at && currentUserCredits.current_membership !== '普通会员') {
       const expireDate = new Date(currentUserCredits.membership_expires_at)
 
       if (expireDate <= now) {
-        // 检查是付费会员还是免费用户
-        if (currentUserCredits.current_membership !== '普通会员') {
-          // 付费会员过期：降级为免费用户，重置15条积分，设置新的30天有效期
-          const newExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30天后
-
-          console.log('付费会员已过期，降级为免费用户并重置积分:', {
-            user_id: user.id,
-            membership: currentUserCredits.current_membership,
-            expired_at: currentUserCredits.membership_expires_at
-          })
-
-          const { error: downgradeError } = await supabaseAdmin
-            .from('user_credits')
-            .update({
-              total_credits: 15,
-              used_credits: 0,
-              current_membership: '普通会员',
-              membership_expires_at: newExpiry.toISOString(), // 30天后再次重置
-            })
-            .eq('user_id', user.id)
-
-          if (downgradeError) {
-            console.error('降级失败:', downgradeError)
-          } else {
-            console.log('降级成功，已恢复15条免费积分，30天后再次重置')
-            currentUserCredits = {
-              ...currentUserCredits,
-              total_credits: 15,
-              used_credits: 0,
-              current_membership: '普通会员',
-              membership_expires_at: newExpiry.toISOString(),
-            }
-          }
-        } else {
-          // 免费用户积分过期：重置15条积分，延长30天
-          const newExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-          console.log('免费用户积分已过期，重置15条积分:', {
-            user_id: user.id,
-            expired_at: currentUserCredits.membership_expires_at
-          })
-
-          const { error: resetError } = await supabaseAdmin
-            .from('user_credits')
-            .update({
-              total_credits: 15,
-              used_credits: 0,
-              membership_expires_at: newExpiry.toISOString(), // 30天后再次重置
-            })
-            .eq('user_id', user.id)
-
-          if (resetError) {
-            console.error('重置积分失败:', resetError)
-          } else {
-            console.log('免费积分重置成功，30天后再次重置')
-            currentUserCredits = {
-              ...currentUserCredits,
-              total_credits: 15,
-              used_credits: 0,
-              membership_expires_at: newExpiry.toISOString(),
-            }
-          }
-        }
-      }
-    } else if (currentUserCredits.current_membership === '普通会员') {
-      // 免费用户没有过期时间，设置一个（30天后）
-      const newExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-      console.log('为免费用户设置积分有效期（30天）')
-
-      const { error: setExpiryError } = await supabaseAdmin
-        .from('user_credits')
-        .update({
-          membership_expires_at: newExpiry.toISOString(),
+        // 付费会员过期：降级为免费用户，赠送15条永久有效积分
+        console.log('付费会员已过期，降级为免费用户并赠送15条永久积分:', {
+          user_id: user.id,
+          membership: currentUserCredits.current_membership,
+          expired_at: currentUserCredits.membership_expires_at
         })
-        .eq('user_id', user.id)
 
-      if (!setExpiryError) {
-        currentUserCredits = {
-          ...currentUserCredits,
-          membership_expires_at: newExpiry.toISOString(),
+        const { error: downgradeError } = await supabaseAdmin
+          .from('user_credits')
+          .update({
+            total_credits: currentUserCredits.total_credits + 15, // 在现有积分基础上加15
+            current_membership: '普通会员',
+            membership_expires_at: null, // 免费积分永久有效，清除过期时间
+          })
+          .eq('user_id', user.id)
+
+        if (downgradeError) {
+          console.error('降级失败:', downgradeError)
+        } else {
+          console.log('降级成功，已赠送15条永久有效积分')
+          currentUserCredits = {
+            ...currentUserCredits,
+            total_credits: currentUserCredits.total_credits + 15,
+            current_membership: '普通会员',
+            membership_expires_at: null,
+          }
         }
       }
     }
