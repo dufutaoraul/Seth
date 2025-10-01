@@ -28,7 +28,7 @@
 1. 左侧菜单：**Settings（齿轮图标）**
 2. 子菜单：**Authentication**
 3. 找到：**Site URL** 字段
-4. 输入：`https://seth-blush.vercel.app`（你的Vercel域名）
+4. 输入：`https://seth.org.cn`（你的正式域名）
 5. 点击：**Save**
 
 **截图位置：**
@@ -51,6 +51,8 @@ Settings → Authentication → Site URL
 **需要添加的URL：**
 
 ```text
+https://seth.org.cn/reset-password
+https://seth.org.cn/*
 https://seth-blush.vercel.app/reset-password
 https://seth-blush.vercel.app/*
 http://localhost:3000/reset-password
@@ -95,7 +97,7 @@ http://localhost:3000/*
 2. 添加环境变量：
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://seth-blush.vercel.app
+NEXT_PUBLIC_SITE_URL=https://seth.org.cn
 ```
 
 3. 应用到：**Production** 和 **Preview** 环境

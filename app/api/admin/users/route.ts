@@ -19,10 +19,37 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    // 获取所有用户信息
-    const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers()
+    // 获取所有用户信息（分页获取，确保获取所有用户）
+    let allAuthUsers: any[] = []
+    let page = 1
+    const perPage = 1000 // 每页获取1000个用户
 
-    if (!allUsers || !allUsers.users) {
+    while (true) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+        page: page,
+        perPage: perPage
+      })
+
+      if (error) {
+        console.error('获取用户列表失败:', error)
+        break
+      }
+
+      if (!data || !data.users || data.users.length === 0) {
+        break
+      }
+
+      allAuthUsers = allAuthUsers.concat(data.users)
+
+      // 如果返回的用户数少于perPage，说明已经是最后一页
+      if (data.users.length < perPage) {
+        break
+      }
+
+      page++
+    }
+
+    if (allAuthUsers.length === 0) {
       return NextResponse.json({ users: [] })
     }
 
@@ -32,7 +59,7 @@ export async function GET(request: NextRequest) {
       .select('*')
 
     // 合并用户信息和积分信息
-    const userInfoList = allUsers.users.map(user => {
+    const userInfoList = allAuthUsers.map(user => {
       const credits = allCredits?.find(c => c.user_id === user.id)
 
       if (!credits) {
