@@ -176,95 +176,134 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
           </div>
         </motion.div>
 
-        {/* 会员套餐 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <h2 className="text-2xl font-bold mb-6 text-center">选择会员等级</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {Object.entries(MEMBERSHIP_PLANS).map(([type, plan]) => {
-              const membershipType = type as MembershipType
-              const isCurrent = userCredits?.current_membership === type
-              const isPopular = type === '高级会员'
-
-              return (
-                <motion.div
-                  key={type}
-                  whileHover={{ scale: 1.02 }}
-                  className={`relative rounded-2xl p-6 border-2 transition-all ${getMembershipColor(
-                    membershipType
-                  )}`}
-                >
-                  {isPopular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-seth-gold text-seth-dark px-4 py-1 rounded-full text-sm font-bold">
-                        最受欢迎
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="text-center">
-                    <div className="flex justify-center mb-4 text-seth-gold">
-                      {getMembershipIcon(membershipType)}
-                    </div>
-
-                    <h3 className="text-xl font-bold mb-2">{type}</h3>
-
-                    {/* 普通会员显示 ¥0 / 15积分 格式 */}
-                    {type === '普通会员' ? (
-                      <div className="text-2xl font-bold text-seth-gold mb-4">
-                        ¥{plan.price} / {plan.credits}积分
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-3xl font-bold mb-4">
-                          {plan.credits}
-                          <span className="text-lg text-gray-400">次对话</span>
-                        </div>
-                        {plan.price > 0 && (
-                          <div className="text-2xl font-bold text-seth-gold mb-4">
-                            ¥{plan.price}
-                            <span className="text-sm text-gray-400">/月</span>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {isCurrent ? (
-                      <div className="w-full py-3 bg-gray-600 text-gray-300 rounded-full font-semibold">
-                        当前套餐
-                      </div>
-                    ) : plan.price === 0 ? (
-                      <div className="w-full py-3 bg-gray-600 text-gray-300 rounded-full font-semibold">
-                        当前套餐
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handlePurchase(membershipType)}
-                        disabled={loading === membershipType}
-                        className={`w-full py-3 rounded-full font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                          isPopular ? 'btn-primary' : 'btn-secondary'
-                        }`}
-                      >
-                        {loading === membershipType ? (
-                          <div className="flex items-center justify-center">
-                            <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
-                            创建订单中...
-                          </div>
-                        ) : (
-                          `立即购买`
-                        )}
-                      </button>
-                    )}
+        {/* 会员套餐 - 根据当前会员等级显示不同内容 */}
+        {/* 普通会员：显示标准和高级会员套餐 */}
+        {userCredits?.current_membership === '普通会员' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
+            <h2 className="text-2xl font-bold mb-6 text-center">选择会员等级</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* 普通会员卡片 */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="relative rounded-2xl p-6 border-2 border-gray-600 bg-gray-800/50"
+              >
+                <div className="text-center">
+                  <div className="flex justify-center mb-4 text-seth-gold">
+                    <Star className="w-8 h-8" />
                   </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        </motion.div>
+                  <h3 className="text-xl font-bold mb-2">普通会员</h3>
+                  <div className="text-2xl font-bold text-seth-gold mb-4">
+                    ¥0 / 15积分
+                  </div>
+                  <div className="w-full py-3 bg-gray-600 text-gray-300 rounded-full font-semibold">
+                    当前套餐
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* 标准会员卡片 */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="relative rounded-2xl p-6 border-2 border-seth-orange bg-orange-900/20"
+              >
+                <div className="text-center">
+                  <div className="flex justify-center mb-4 text-seth-gold">
+                    <Zap className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">标准会员</h3>
+                  <div className="text-3xl font-bold mb-4">
+                    3<span className="text-lg text-gray-400">次对话</span>
+                  </div>
+                  <div className="text-2xl font-bold text-seth-gold mb-4">
+                    ¥1<span className="text-sm text-gray-400">/月</span>
+                  </div>
+                  <button
+                    onClick={() => handlePurchase('标准会员')}
+                    disabled={loading === '标准会员'}
+                    className="w-full py-3 btn-secondary rounded-full font-semibold"
+                  >
+                    {loading === '标准会员' ? '创建订单中...' : '立即购买'}
+                  </button>
+                </div>
+              </motion.div>
+
+              {/* 高级会员卡片 */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="relative rounded-2xl p-6 border-2 border-seth-gold bg-yellow-900/20 ring-2 ring-seth-gold"
+              >
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-seth-gold text-seth-dark px-4 py-1 rounded-full text-sm font-bold">
+                    最受欢迎
+                  </span>
+                </div>
+                <div className="text-center">
+                  <div className="flex justify-center mb-4 text-seth-gold">
+                    <Crown className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">高级会员</h3>
+                  <div className="text-3xl font-bold mb-4">
+                    6<span className="text-lg text-gray-400">次对话</span>
+                  </div>
+                  <div className="text-2xl font-bold text-seth-gold mb-4">
+                    ¥2<span className="text-sm text-gray-400">/月</span>
+                  </div>
+                  <button
+                    onClick={() => handlePurchase('高级会员')}
+                    disabled={loading === '高级会员'}
+                    className="w-full py-3 btn-primary rounded-full font-semibold"
+                  >
+                    {loading === '高级会员' ? '创建订单中...' : '立即购买'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 标准会员：只显示升级按钮 */}
+        {userCredits?.current_membership === '标准会员' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
+            <h2 className="text-2xl font-bold mb-6 text-center">会员升级</h2>
+            <div className="max-w-md mx-auto">
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="relative rounded-2xl p-8 border-2 border-seth-gold bg-yellow-900/20"
+              >
+                <div className="text-center">
+                  <div className="flex justify-center mb-4 text-seth-gold">
+                    <Crown className="w-12 h-12" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-2">升级到高级会员</h3>
+                  <p className="text-gray-400 mb-4">补差价即可升级，到期时间不变</p>
+                  <div className="text-3xl font-bold mb-2">
+                    +3<span className="text-lg text-gray-400">次对话</span>
+                  </div>
+                  <div className="text-2xl font-bold text-seth-gold mb-6">
+                    ¥1<span className="text-sm text-gray-400"> 补差价</span>
+                  </div>
+                  <button
+                    onClick={() => handlePurchase('升级到高级')}
+                    disabled={loading === '升级到高级'}
+                    className="w-full py-3 btn-primary rounded-full font-semibold text-lg"
+                  >
+                    {loading === '升级到高级' ? '创建订单中...' : '立即升级'}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
 
         {/* 积分包 - 仅对付费会员显示 */}
         {userCredits && userCredits.current_membership !== '普通会员' && (

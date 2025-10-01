@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         {
           user_id: user.id,
           order_no: orderNo,
-          membership_type: isMembership ? productType : isUpgrade ? '高级会员' : null,
+          membership_type: isMembership ? productType : isUpgrade ? '高级会员' : productType, // 积分包使用productType（如"积分包150"）
           order_type: product.type,
           amount_yuan: product.price,
           credits_to_add: product.credits,
