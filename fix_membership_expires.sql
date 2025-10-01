@@ -13,13 +13,13 @@ WHERE current_membership = '普通会员';
 
 -- 3. 验证修改结果
 SELECT
-  email,
-  total_credits,
-  used_credits,
-  remaining_credits,
-  current_membership,
-  membership_expires_at,
-  created_at
+  u.email,
+  uc.total_credits,
+  uc.used_credits,
+  uc.remaining_credits,
+  uc.current_membership,
+  uc.membership_expires_at,
+  uc.created_at
 FROM user_credits uc
 JOIN auth.users u ON uc.user_id = u.id
 ORDER BY uc.created_at DESC
