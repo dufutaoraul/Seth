@@ -277,12 +277,48 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
 
       const data = await response.json()
 
-      // 更新消息列表
+      // 先添加用户消息和空的assistant消息
+      const assistantMessageId = `assistant-${Date.now()}`
       setMessages(prev => [
         ...prev.filter(m => !m.id.startsWith('temp-')),
         data.userMessage,
-        data.assistantMessage,
+        {
+          ...data.assistantMessage,
+          id: assistantMessageId,
+          content: '', // 初始为空，准备打字机效果
+        },
       ])
+
+      // 打字机效果：逐字显示assistant的回复
+      const fullContent = data.assistantMessage.content
+      let currentIndex = 0
+      const typingSpeed = 30 // 每个字符显示间隔（毫秒）
+
+      const typeNextChar = () => {
+        if (currentIndex < fullContent.length) {
+          currentIndex++
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantMessageId
+                ? { ...m, content: fullContent.slice(0, currentIndex) }
+                : m
+            )
+          )
+          setTimeout(typeNextChar, typingSpeed)
+        } else {
+          // 打字完成，更新为最终的完整消息（包含所有字段）
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantMessageId
+                ? data.assistantMessage
+                : m
+            )
+          )
+        }
+      }
+
+      // 启动打字机效果
+      typeNextChar()
 
       // 立即更新积分显示（乐观更新）
       console.log('=== 开始积分乐观更新 ===')
