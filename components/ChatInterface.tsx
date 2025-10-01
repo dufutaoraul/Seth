@@ -218,7 +218,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
     // 添加用户消息到界面
     const tempUserMessage: ChatMessage = {
       id: `temp-${Date.now()}`,
-      session_id: sessionToUse.id,
+      session_id: currentSession?.id || '',
       user_id: user.id,
       message_type: 'user',
       content: userMessage,
