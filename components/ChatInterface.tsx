@@ -247,8 +247,8 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       console.log('当前会话:', currentSession)
       console.log('现有消息数量:', messages.length)
 
-      // 调用简化版聊天API（已添加数据库保存功能）
-      const response = await fetch('/api/chat-simple', {
+      // 调用流式聊天API
+      const response = await fetch('/api/chat-stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,60 +258,93 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       })
 
       if (!response.ok) {
-        // 尝试获取详细错误信息
-        let errorMessage = '发送消息失败'
-        try {
-          const errorData = await response.json()
-          if (errorData.error) {
-            errorMessage = errorData.error
-          }
-          if (errorData.details) {
-            errorMessage += `: ${errorData.details}`
-          }
-          console.error('API错误详情:', errorData)
-        } catch (e) {
-          console.error('无法解析错误响应:', e)
-        }
-        throw new Error(errorMessage)
+        const errorText = await response.text()
+        throw new Error(errorText || '发送消息失败')
       }
 
-      const data = await response.json()
-
-      // 更新消息列表
+      // 创建Assistant消息（用于实时更新）
+      const assistantMessageId = `assistant-${Date.now()}`
       setMessages(prev => [
         ...prev.filter(m => !m.id.startsWith('temp-')),
-        data.userMessage,
-        data.assistantMessage,
+        {
+          id: `user-${Date.now()}`,
+          session_id: currentSession?.id || '',
+          user_id: user.id,
+          message_type: 'user',
+          content: userMessage,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: assistantMessageId,
+          session_id: currentSession?.id || '',
+          user_id: user.id,
+          message_type: 'assistant',
+          content: '',
+          created_at: new Date().toISOString(),
+        },
       ])
 
-      // 立即更新积分显示（乐观更新）
-      console.log('=== 开始积分乐观更新 ===')
-      console.log('发送前积分状态:', JSON.stringify(credits, null, 2))
+      // 处理流式响应
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
 
-      if (credits && credits.remaining_credits > 0) {
-        const optimisticCredits = {
-          ...credits,
-          used_credits: credits.used_credits + 1,
-          remaining_credits: credits.remaining_credits - 1
-        }
-        console.log('执行乐观更新:', JSON.stringify(optimisticCredits, null, 2))
-        setCredits(optimisticCredits)
-        console.log('积分已更新为:', optimisticCredits.remaining_credits)
-      } else {
-        console.warn('积分状态异常，无法执行乐观更新:', credits)
-      }
+      if (reader) {
+        let buffer = ''
 
-      // 如果创建了新会话，更新当前会话
-      if (data.sessionId && (!currentSession || currentSession.id !== data.sessionId)) {
-        const newSession = {
-          id: data.sessionId,
-          user_id: user.id,
-          title: userMessage.slice(0, 20) + (userMessage.length > 20 ? '...' : ''),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (!line.trim() || !line.startsWith('data: ')) continue
+
+            const data = line.slice(6)
+            try {
+              const parsed = JSON.parse(data)
+
+              if (parsed.type === 'content') {
+                // 更新Assistant消息内容
+                setMessages(prev =>
+                  prev.map(m =>
+                    m.id === assistantMessageId
+                      ? { ...m, content: parsed.content }
+                      : m
+                  )
+                )
+              } else if (parsed.type === 'done') {
+                // 流式完成，更新积分和会话
+                if (credits) {
+                  setCredits({
+                    ...credits,
+                    used_credits: credits.used_credits + 1,
+                    remaining_credits: parsed.remainingCredits
+                  })
+                }
+
+                // 更新会话
+                if (parsed.sessionId && (!currentSession || currentSession.id !== parsed.sessionId)) {
+                  const newSession = {
+                    id: parsed.sessionId,
+                    user_id: user.id,
+                    title: userMessage.slice(0, 20) + (userMessage.length > 20 ? '...' : ''),
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                  }
+                  setCurrentSession(newSession)
+                  setSessions(prev => [newSession, ...prev])
+                }
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.error)
+              }
+            } catch (e) {
+              console.error('解析SSE数据失败:', e)
+            }
+          }
         }
-        setCurrentSession(newSession)
-        setSessions(prev => [newSession, ...prev])
       }
 
       // 暂时注释掉会话标题更新（需要数据库）
