@@ -111,8 +111,13 @@ export default function HomePage() {
     setLoading(true)
 
     try {
+      // 使用生产环境URL，确保重置链接可以正常访问
+      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`
+        : `${window.location.origin}/reset-password`
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl,
       })
 
       if (error) {
