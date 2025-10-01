@@ -272,6 +272,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
           user_id: user.id,
           message_type: 'user',
           content: userMessage,
+          tokens_used: 0,
           created_at: new Date().toISOString(),
         },
         {
@@ -280,6 +281,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
           user_id: user.id,
           message_type: 'assistant',
           content: '',
+          tokens_used: 0,
           created_at: new Date().toISOString(),
         },
       ])
