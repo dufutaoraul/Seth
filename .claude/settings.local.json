@@ -26,7 +26,8 @@
       "Bash(curl:*)",
       "Bash(python:*)",
       "Bash(git rm:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Read(//d/**)"
     ],
     "deny": [],
     "ask": []
