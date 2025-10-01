@@ -117,33 +117,43 @@ export async function POST(request: NextRequest) {
 
               try {
                 const parsed = JSON.parse(data)
+                console.log('📨 Dify事件:', parsed.event)
 
                 // agent_thought 事件：AI思考过程
                 if (parsed.event === 'agent_thought') {
                   // 可以显示思考过程，暂时忽略
+                  console.log('💭 AI思考中...')
                 }
                 // message 事件：保存完整答案但不发送（避免闪烁）
                 else if (parsed.event === 'message') {
                   if (parsed.answer) {
                     fullAnswer = parsed.answer
+                    console.log('📝 收到答案，长度:', fullAnswer.length, '内容前50字:', fullAnswer.slice(0, 50))
+                  } else {
+                    console.log('⚠️ message事件没有answer字段')
                   }
                 }
                 // message_end 事件：消息结束，发送完整答案
                 else if (parsed.event === 'message_end') {
                   difyConversationId = parsed.conversation_id
                   difyMessageId = parsed.id
+                  console.log('✅ 消息结束')
 
                   // 确保有最终答案
                   if (parsed.answer) {
                     fullAnswer = parsed.answer
+                    console.log('📝 message_end中有answer，长度:', fullAnswer.length)
                   }
 
                   // 只在结束时发送一次完整答案到前端
                   if (fullAnswer) {
+                    console.log('🚀 发送答案到前端，长度:', fullAnswer.length, '内容前50字:', fullAnswer.slice(0, 50))
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                       type: 'content',
                       content: fullAnswer
                     })}\n\n`))
+                  } else {
+                    console.log('❌ 没有答案可发送！')
                   }
                 }
               } catch (e) {
