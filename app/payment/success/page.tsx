@@ -27,6 +27,41 @@ export default function PaymentSuccess() {
 
         setUser(user)
 
+        // ⭐ 处理ZPay的return_url回调参数
+        const urlParams = new URLSearchParams(window.location.search)
+        const out_trade_no = urlParams.get('out_trade_no')
+        const trade_no = urlParams.get('trade_no')
+        const trade_status = urlParams.get('trade_status')
+
+        // 如果有回调参数，调用后端处理订单
+        if (out_trade_no && trade_status === 'TRADE_SUCCESS') {
+          console.log('检测到支付成功回调，处理订单:', out_trade_no)
+
+          try {
+            // 将所有URL参数传给后端notify API
+            const params: Record<string, string> = {}
+            urlParams.forEach((value, key) => {
+              params[key] = value
+            })
+
+            // 调用notify API处理订单
+            const notifyResponse = await fetch('/api/payment/notify?' + urlParams.toString(), {
+              method: 'GET',
+            })
+
+            const notifyResult = await notifyResponse.text()
+            console.log('订单处理结果:', notifyResult)
+
+            if (notifyResult === 'success') {
+              console.log('订单处理成功，等待2秒后刷新积分')
+              // 等待2秒让数据库更新完成
+              await new Promise(resolve => setTimeout(resolve, 2000))
+            }
+          } catch (notifyError) {
+            console.error('处理订单回调失败:', notifyError)
+          }
+        }
+
         // 获取最新的积分信息
         const { data: userCredits, error: creditsError } = await supabase
           .from('user_credits')

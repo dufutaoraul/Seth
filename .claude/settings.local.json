@@ -25,7 +25,8 @@
       "Bash(curl -X POST \"https://seth-blush.vercel.app/api/payment/manual-fix\" -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"2245246007@qq.com\"\",\"\"orderNo\"\":\"\"20250930134006537\"\"}')",
       "Bash(curl:*)",
       "Bash(python:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
