@@ -18,12 +18,33 @@ interface UserInfo {
   days_remaining: number | null
 }
 
+interface OrderInfo {
+  id: string
+  order_no: string
+  membership_type: string
+  amount_yuan: number
+  credits_to_add: number
+  payment_method: string
+  payment_status: string
+  zpay_trade_no: string | null
+  paid_at: string | null
+  created_at: string
+  order_type: string
+}
+
 export default function AdminPage() {
   const [users, setUsers] = useState<UserInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedUserEmail, setSelectedUserEmail] = useState<string | null>(null)
+  const [showOrderModal, setShowOrderModal] = useState(false)
+  const [selectedUserOrders, setSelectedUserOrders] = useState<{
+    user: { id: string; email: string }
+    credits: any
+    recent_orders: OrderInfo[]
+  } | null>(null)
+  const [loadingOrders, setLoadingOrders] = useState(false)
   const router = useRouter()
 
   // 管理员密码
@@ -59,6 +80,26 @@ export default function AdminPage() {
       alert('加载失败: ' + (error instanceof Error ? error.message : '未知错误'))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadUserOrders = async (email: string) => {
+    try {
+      setLoadingOrders(true)
+      const response = await fetch(`/api/payment/check-order?email=${email}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        setSelectedUserOrders(data)
+        setShowOrderModal(true)
+      } else {
+        alert('加载订单失败')
+      }
+    } catch (error) {
+      console.error('加载订单失败:', error)
+      alert('加载订单失败')
+    } finally {
+      setLoadingOrders(false)
     }
   }
 
@@ -214,10 +255,11 @@ export default function AdminPage() {
                     </td>
                     <td className="p-4">
                       <button
-                        onClick={() => window.open(`/api/payment/check-order?email=${user.email}`, '_blank')}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition"
+                        onClick={() => loadUserOrders(user.email)}
+                        disabled={loadingOrders}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs transition disabled:opacity-50"
                       >
-                        查看订单
+                        {loadingOrders ? '加载中...' : '查看订单'}
                       </button>
                     </td>
                   </tr>
@@ -226,6 +268,147 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
+
+        {/* 订单详情模态框 */}
+        {showOrderModal && selectedUserOrders && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4" onClick={() => setShowOrderModal(false)}>
+            <div className="bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              {/* 模态框头部 */}
+              <div className="sticky top-0 bg-gray-800 border-b border-gray-700 p-6 flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-seth-gold">订单详情</h2>
+                  <p className="text-gray-400 mt-1">{selectedUserOrders.user.email}</p>
+                </div>
+                <button
+                  onClick={() => setShowOrderModal(false)}
+                  className="text-gray-400 hover:text-white text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* 用户积分信息 */}
+              <div className="p-6 border-b border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-4">当前积分状态</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <div className="text-gray-400 text-sm mb-1">会员等级</div>
+                    <div className="text-xl font-bold text-seth-gold">
+                      {selectedUserOrders.credits.current_membership}
+                    </div>
+                  </div>
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <div className="text-gray-400 text-sm mb-1">总积分</div>
+                    <div className="text-xl font-bold text-white">
+                      {selectedUserOrders.credits.total_credits}
+                    </div>
+                  </div>
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <div className="text-gray-400 text-sm mb-1">已使用</div>
+                    <div className="text-xl font-bold text-gray-300">
+                      {selectedUserOrders.credits.used_credits}
+                    </div>
+                  </div>
+                  <div className="bg-gray-700 rounded-lg p-4">
+                    <div className="text-gray-400 text-sm mb-1">剩余</div>
+                    <div className="text-xl font-bold text-green-400">
+                      {selectedUserOrders.credits.remaining_credits}
+                    </div>
+                  </div>
+                </div>
+                {selectedUserOrders.credits.membership_expires_at && (
+                  <div className="mt-4 text-gray-400 text-sm">
+                    到期时间：{new Date(selectedUserOrders.credits.membership_expires_at).toLocaleString('zh-CN')}
+                  </div>
+                )}
+              </div>
+
+              {/* 订单列表 */}
+              <div className="p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  订单记录 ({selectedUserOrders.recent_orders.length})
+                </h3>
+                {selectedUserOrders.recent_orders.length === 0 ? (
+                  <div className="text-center text-gray-400 py-8">暂无订单记录</div>
+                ) : (
+                  <div className="space-y-4">
+                    {selectedUserOrders.recent_orders.map((order) => (
+                      <div key={order.id} className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="font-semibold text-white mb-1">
+                              {order.membership_type}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              订单号：{order.order_no}
+                            </div>
+                          </div>
+                          <div className={`px-3 py-1 rounded text-xs font-semibold ${
+                            order.payment_status === 'paid' ? 'bg-green-600 text-white' :
+                            order.payment_status === 'pending' ? 'bg-yellow-600 text-white' :
+                            'bg-red-600 text-white'
+                          }`}>
+                            {order.payment_status === 'paid' ? '已支付' :
+                             order.payment_status === 'pending' ? '待支付' : '失败'}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <span className="text-gray-400">金额：</span>
+                            <span className="text-white font-semibold">¥{order.amount_yuan}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">积分：</span>
+                            <span className="text-green-400 font-semibold">+{order.credits_to_add}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">支付方式：</span>
+                            <span className="text-white">{order.payment_method === 'alipay' ? '支付宝' : order.payment_method}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">类型：</span>
+                            <span className="text-white">
+                              {order.order_type === 'membership' ? '会员套餐' :
+                               order.order_type === 'upgrade' ? '升级套餐' : '积分包'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {order.zpay_trade_no && (
+                          <div className="mt-3 text-xs text-gray-400 border-t border-gray-600 pt-3">
+                            <div>支付流水号：{order.zpay_trade_no}</div>
+                          </div>
+                        )}
+
+                        <div className="mt-3 flex justify-between text-xs text-gray-400">
+                          <div>
+                            创建时间：{new Date(order.created_at).toLocaleString('zh-CN')}
+                          </div>
+                          {order.paid_at && (
+                            <div className="text-green-400">
+                              支付时间：{new Date(order.paid_at).toLocaleString('zh-CN')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 模态框底部 */}
+              <div className="sticky bottom-0 bg-gray-800 border-t border-gray-700 p-4 flex justify-end">
+                <button
+                  onClick={() => setShowOrderModal(false)}
+                  className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-2 rounded transition"
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
