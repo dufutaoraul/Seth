@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
           user_id: user.id,
           total_credits: 15,
           used_credits: 0,
-          current_membership: '普通会员'
+          current_membership: '普通会员',
+          membership_expires_at: null  // 免费用户积分永久有效
         }])
         .select()
         .single()

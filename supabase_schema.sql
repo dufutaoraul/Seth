@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS user_credits (
     used_credits INTEGER DEFAULT 0,   -- 已使用积分
     remaining_credits INTEGER GENERATED ALWAYS AS (total_credits - used_credits) STORED, -- 剩余积分
     current_membership VARCHAR(50) DEFAULT '免费用户',
-    membership_expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '1 month'),
+    membership_expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL, -- 免费用户积分永久有效，付费会员才有过期时间
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user_id)
@@ -119,8 +119,8 @@ CREATE TRIGGER update_payment_orders_updated_at BEFORE UPDATE ON payment_orders
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO user_credits (user_id, total_credits, used_credits, current_membership)
-    VALUES (NEW.id, 15, 0, '免费用户');
+    INSERT INTO user_credits (user_id, total_credits, used_credits, current_membership, membership_expires_at)
+    VALUES (NEW.id, 15, 0, '免费用户', NULL);  -- 免费用户积分永久有效
     RETURN NEW;
 END;
 $$ language 'plpgsql';
