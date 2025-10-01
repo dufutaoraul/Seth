@@ -348,7 +348,8 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
   // 登出
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/')
+    // 立即跳转到首页，不等待认证状态变化
+    window.location.href = '/'
   }
 
   return (

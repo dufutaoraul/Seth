@@ -33,6 +33,9 @@ export default function ChatTestPage() {
       console.log('Auth state changed:', event, session?.user ? 'User found' : 'No user')
       if (session?.user) {
         setUser(session.user)
+      } else if (event === 'SIGNED_OUT') {
+        // 退出登录时立即跳转，不显示"未找到用户信息"界面
+        window.location.href = '/'
       } else {
         setUser(null)
         router.push('/')
