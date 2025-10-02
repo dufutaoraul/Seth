@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -14,7 +14,16 @@ export default function HomePage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true) // 默认记住登录
   const router = useRouter()
+
+  // 页面加载时尝试从localStorage恢复邮箱
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('saved_email')
+    if (savedEmail) {
+      setEmail(savedEmail)
+    }
+  }, [])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,6 +56,13 @@ export default function HomePage() {
             toast.error(error.message || '登录失败')
           }
           return
+        }
+
+        // 如果勾选"记住我"，保存邮箱到localStorage
+        if (rememberMe) {
+          localStorage.setItem('saved_email', email)
+        } else {
+          localStorage.removeItem('saved_email')
         }
 
         toast.success('登录成功，正在跳转...')
@@ -270,7 +286,16 @@ export default function HomePage() {
                 </div>
 
                 {isLogin && (
-                  <div className="text-right">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-4 h-4 text-seth-gold bg-gray-700 border-gray-600 rounded focus:ring-seth-gold focus:ring-2"
+                      />
+                      <span className="ml-2 text-sm text-gray-300">记住邮箱</span>
+                    </label>
                     <button
                       type="button"
                       onClick={() => setIsForgotPassword(true)}
