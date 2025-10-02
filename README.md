@@ -2,6 +2,8 @@
 
 基于 Next.js 14、Supabase、Dify API 和 ZPay 构建的智能聊天系统。
 
+**官方网站：** https://seth.org.cn
+
 ## 功能特性
 
 - 🤖 **AI 智能对话** - 集成 Dify 工作流，提供专业的赛斯哲学对话体验
