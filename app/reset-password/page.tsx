@@ -15,15 +15,22 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // 检查是否有有效的重置token
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const accessToken = hashParams.get('access_token')
-    const refreshToken = hashParams.get('refresh_token')
+    // 检查用户是否已通过Supabase重置链接自动登录
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
 
-    if (!accessToken || !refreshToken) {
-      toast.error('无效的重置链接，请重新申请')
-      router.push('/')
+      console.log('重置密码页面 - 检查session:', {
+        hasSession: !!session,
+        hash: window.location.hash
+      })
+
+      if (!session) {
+        toast.error('无效的重置链接，请重新申请')
+        setTimeout(() => router.push('/'), 2000)
+      }
     }
+
+    checkSession()
   }, [router])
 
   const handleResetPassword = async (e: React.FormEvent) => {
