@@ -283,10 +283,46 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
 
       const decoder = new TextDecoder()
       let buffer = ''
-      let fullAnswer = ''
+      let fullAnswer = ''  // 从Dify接收到的完整内容
+      let displayedAnswer = ''  // 已经显示在界面上的内容
       let newSessionId = ''
       let newConversationId = ''
       let remainingCredits = credits?.remaining_credits || 0
+
+      // 视觉缓冲队列：用于控制显示速度
+      let pendingChunks: string[] = []
+      let displayInterval: NodeJS.Timeout | null = null
+
+      // 启动显示定时器（每50ms显示一些字符）
+      const startDisplayTimer = () => {
+        if (displayInterval) return
+
+        displayInterval = setInterval(() => {
+          if (pendingChunks.length === 0) {
+            // 没有待显示内容，但检查是否已经全部接收完成
+            if (displayedAnswer === fullAnswer && fullAnswer.length > 0) {
+              // 全部显示完成，清除定时器
+              if (displayInterval) {
+                clearInterval(displayInterval)
+                displayInterval = null
+              }
+            }
+            return
+          }
+
+          // 从队列中取出内容进行显示（每次显示3个字符，平衡速度和流畅度）
+          const chunkToDisplay = pendingChunks.shift() || ''
+          displayedAnswer += chunkToDisplay
+
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantMessageId
+                ? { ...m, content: displayedAnswer }
+                : m
+            )
+          )
+        }, 50) // 每50ms更新一次显示
+      }
 
       try {
         while (true) {
@@ -307,15 +343,16 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
               const parsed = JSON.parse(data)
 
               if (parsed.type === 'delta' && parsed.content) {
-                // 收到增量内容，立即更新界面
+                // 收到增量内容，添加到完整答案和待显示队列
                 fullAnswer += parsed.content
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === assistantMessageId
-                      ? { ...m, content: fullAnswer }
-                      : m
-                  )
-                )
+
+                // 将内容按字符分割加入队列（控制显示粒度）
+                for (let i = 0; i < parsed.content.length; i += 3) {
+                  pendingChunks.push(parsed.content.slice(i, i + 3))
+                }
+
+                // 启动显示定时器
+                startDisplayTimer()
               } else if (parsed.type === 'done') {
                 // 流结束
                 newSessionId = parsed.sessionId
@@ -329,8 +366,16 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
             }
           }
         }
+
+        // 等待所有内容显示完成
+        while (displayedAnswer !== fullAnswer) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
       } finally {
         reader.releaseLock()
+        if (displayInterval) {
+          clearInterval(displayInterval)
+        }
       }
 
       // 更新积分
