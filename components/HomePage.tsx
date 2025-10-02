@@ -134,10 +134,12 @@ export default function HomePage() {
     setLoading(true)
 
     try {
-      // 使用生产环境URL，确保重置链接可以正常访问
-      const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`
-        : `${window.location.origin}/reset-password`
+      // 使用当前域名，确保重置链接可以正常访问
+      const redirectUrl = `${window.location.origin}/reset-password`
+
+      console.log('=== 发送密码重置邮件 ===')
+      console.log('redirectUrl:', redirectUrl)
+      console.log('email:', email)
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
