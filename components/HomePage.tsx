@@ -63,6 +63,14 @@ export default function HomePage() {
           return
         }
 
+        // 强制检查邮箱是否已验证
+        if (data.user && !data.user.email_confirmed_at) {
+          // 登出未验证用户
+          await supabase.auth.signOut()
+          toast.error('请先验证邮箱后再登录。验证邮件已发送到您的邮箱，请查收')
+          return
+        }
+
         // 如果勾选"记住我"，保存邮箱和密码到localStorage
         if (rememberMe) {
           localStorage.setItem('saved_email', email)
@@ -91,6 +99,9 @@ export default function HomePage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/chat-simple`,
+            data: {
+              email_confirm_required: true
+            }
           },
         })
 
@@ -107,14 +118,14 @@ export default function HomePage() {
           return
         }
 
-        if (data.user && !data.user.email_confirmed_at) {
-          toast.success('注册成功！请检查邮箱验证链接完成注册')
-        } else {
-          toast.success('注册成功！')
-          setTimeout(() => {
-            window.location.href = '/chat-simple'
-          }, 1500)
-        }
+        // 注册成功后，要求用户验证邮箱
+        toast.success('注册成功！验证邮件已发送，请查收邮箱并点击验证链接后登录', {
+          duration: 5000
+        })
+        // 切换到登录页面
+        setTimeout(() => {
+          setIsLogin(true)
+        }, 2000)
       }
     } catch (error: any) {
       console.error('Auth error:', error)
