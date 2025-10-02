@@ -21,8 +21,11 @@ export default function PaymentSuccess() {
         const { data: { user }, error } = await supabase.auth.getUser()
 
         if (error || !user) {
-          console.log('用户未认证，跳转到首页')
-          router.push('/')
+          console.log('用户Session丢失，尝试从支付回调中恢复用户信息')
+
+          // 不要直接跳转，而是设置loading=false，让用户看到支付成功页面
+          // 用户可以点击"开始对话"按钮，会自动引导到登录页面
+          setLoading(false)
           return
         }
 
@@ -130,8 +133,28 @@ export default function PaymentSuccess() {
     )
   }
 
+  // 如果用户Session丢失，显示简化版的支付成功页面，引导用户重新登录
   if (!user) {
-    return null // 将会重定向到首页
+    return (
+      <div className="min-h-screen bg-seth-dark flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-gray-800/50 backdrop-blur-sm p-8 rounded-2xl border border-gray-700 text-center">
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-seth-gold mb-4">支付成功！</h1>
+          <p className="text-gray-300 mb-6">您的支付已成功处理，积分已到账</p>
+          <p className="text-gray-400 text-sm mb-8">请重新登录以继续使用</p>
+          <button
+            onClick={() => router.push('/')}
+            className="w-full btn-primary"
+          >
+            返回首页并登录
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return <PaymentSuccessPage user={user} userCredits={userCredits} orderType={orderType} />
