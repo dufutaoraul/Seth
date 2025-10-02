@@ -90,31 +90,34 @@ export default function PaymentSuccess() {
           }
         }
 
-        // 获取最新的积分信息
-        const { data: userCredits, error: creditsError } = await supabase
-          .from('user_credits')
-          .select('*')
-          .eq('user_id', user.id)
-          .single()
-
-        if (creditsError) {
-          console.error('获取积分信息失败:', creditsError)
-        } else {
-          console.log('支付成功页面获取到的用户积分:', userCredits)
-          setUserCredits(userCredits)
-        }
-
-        // 获取最新的订单信息，判断购买类型
-        if (out_trade_no) {
-          const { data: order, error: orderError } = await supabase
-            .from('payment_orders')
-            .select('order_type, membership_type, credits_to_add')
-            .eq('order_no', out_trade_no)
+        // 只有在user存在时才获取积分信息
+        if (user) {
+          // 获取最新的积分信息
+          const { data: userCredits, error: creditsError } = await supabase
+            .from('user_credits')
+            .select('*')
+            .eq('user_id', user.id)
             .single()
 
-          if (!orderError && order) {
-            console.log('订单信息:', order)
-            setOrderType(order.order_type)
+          if (creditsError) {
+            console.error('获取积分信息失败:', creditsError)
+          } else {
+            console.log('支付成功页面获取到的用户积分:', userCredits)
+            setUserCredits(userCredits)
+          }
+
+          // 获取最新的订单信息，判断购买类型
+          if (out_trade_no) {
+            const { data: order, error: orderError } = await supabase
+              .from('payment_orders')
+              .select('order_type, membership_type, credits_to_add')
+              .eq('order_no', out_trade_no)
+              .single()
+
+            if (!orderError && order) {
+              console.log('订单信息:', order)
+              setOrderType(order.order_type)
+            }
           }
         }
       } catch (error) {
