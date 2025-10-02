@@ -335,9 +335,20 @@ export default function AdminPage() {
                     {selectedUserOrders.recent_orders.map((order) => (
                       <div key={order.id} className="bg-gray-700 rounded-lg p-4 border border-gray-600">
                         <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <div className="font-semibold text-white mb-1">
-                              {order.membership_type}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="font-semibold text-white">
+                                {order.membership_type}
+                              </div>
+                              {/* 订单类型标签 */}
+                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                                order.order_type === 'upgrade' ? 'bg-purple-600 text-white' :
+                                order.order_type === 'credit_pack' ? 'bg-blue-600 text-white' :
+                                'bg-gray-600 text-white'
+                              }`}>
+                                {order.order_type === 'upgrade' ? '升级' :
+                                 order.order_type === 'credit_pack' ? '积分包' : '会员'}
+                              </span>
                             </div>
                             <div className="text-xs text-gray-400">
                               订单号：{order.order_no}

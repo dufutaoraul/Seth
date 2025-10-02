@@ -124,36 +124,31 @@ export async function POST(request: NextRequest) {
                   // 可以显示思考过程，暂时忽略
                   console.log('💭 AI思考中...')
                 }
-                // message 事件：保存完整答案但不发送（避免闪烁）
+                // message 事件：Dify返回完整答案，我们计算增量并发送
                 else if (parsed.event === 'message') {
                   if (parsed.answer) {
-                    fullAnswer = parsed.answer
-                    console.log('📝 收到答案，长度:', fullAnswer.length, '内容前50字:', fullAnswer.slice(0, 50))
-                  } else {
-                    console.log('⚠️ message事件没有answer字段')
+                    const newAnswer = parsed.answer
+                    // 计算增量部分（新答案比旧答案多出的部分）
+                    if (newAnswer.length > fullAnswer.length) {
+                      const delta = newAnswer.slice(fullAnswer.length)
+                      fullAnswer = newAnswer
+
+                      // 发送增量内容到前端
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                        type: 'delta',
+                        content: delta
+                      })}\n\n`))
+                    }
                   }
                 }
-                // message_end 事件：消息结束，发送完整答案
+                // message_end 事件：消息结束
                 else if (parsed.event === 'message_end') {
                   difyConversationId = parsed.conversation_id
                   difyMessageId = parsed.id
-                  console.log('✅ 消息结束')
 
                   // 确保有最终答案
-                  if (parsed.answer) {
+                  if (parsed.answer && parsed.answer.length > fullAnswer.length) {
                     fullAnswer = parsed.answer
-                    console.log('📝 message_end中有answer，长度:', fullAnswer.length)
-                  }
-
-                  // 只在结束时发送一次完整答案到前端
-                  if (fullAnswer) {
-                    console.log('🚀 发送答案到前端，长度:', fullAnswer.length, '内容前50字:', fullAnswer.slice(0, 50))
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                      type: 'content',
-                      content: fullAnswer
-                    })}\n\n`))
-                  } else {
-                    console.log('❌ 没有答案可发送！')
                   }
                 }
               } catch (e) {
