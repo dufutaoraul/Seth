@@ -4,7 +4,7 @@ import { User } from '@supabase/supabase-js'
 import { UserCredits } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { CheckCircle, Sparkles, ArrowRight, Home } from 'lucide-react'
+import { CheckCircle, Sparkles, ArrowRight } from 'lucide-react'
 
 interface Props {
   user: User
@@ -96,7 +96,6 @@ export default function PaymentSuccessPage({ user, userCredits, orderType }: Pro
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="space-y-4"
         >
           <button
             onClick={() => router.push('/chat-test')}
@@ -105,14 +104,6 @@ export default function PaymentSuccessPage({ user, userCredits, orderType }: Pro
             <Sparkles className="w-5 h-5 mr-2" />
             开始与赛斯对话
             <ArrowRight className="w-5 h-5 ml-2" />
-          </button>
-
-          <button
-            onClick={() => router.push('/')}
-            className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 px-6 rounded-full transition-colors flex items-center justify-center"
-          >
-            <Home className="w-5 h-5 mr-2" />
-            返回首页
           </button>
         </motion.div>
 
