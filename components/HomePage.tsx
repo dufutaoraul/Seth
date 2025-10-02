@@ -134,8 +134,8 @@ export default function HomePage() {
     setLoading(true)
 
     try {
-      // 使用当前域名，确保重置链接可以正常访问
-      const redirectUrl = `${window.location.origin}/reset-password`
+      // 明确指定完整的重置URL
+      const redirectUrl = 'https://seth.org.cn/reset-password'
 
       console.log('=== 发送密码重置邮件 ===')
       console.log('redirectUrl:', redirectUrl)
