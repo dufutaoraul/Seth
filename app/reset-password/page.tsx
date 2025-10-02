@@ -15,15 +15,19 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // 检查是否有有效的重置token
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const accessToken = hashParams.get('access_token')
-    const refreshToken = hashParams.get('refresh_token')
+    // 延迟检查token，确保hash参数已加载
+    const timer = setTimeout(() => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
 
-    if (!accessToken || !refreshToken) {
-      toast.error('无效的重置链接，请重新申请')
-      router.push('/')
-    }
+      if (!accessToken || !refreshToken) {
+        toast.error('无效的重置链接，请重新申请')
+        router.push('/')
+      }
+    }, 300) // 延迟300ms检查
+
+    return () => clearTimeout(timer)
   }, [router])
 
   const handleResetPassword = async (e: React.FormEvent) => {
