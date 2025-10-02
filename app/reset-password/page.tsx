@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Key } from 'lucide-react'
@@ -11,50 +11,20 @@ function ResetPasswordForm() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [validating, setValidating] = useState(true)
-  const [hasValidToken, setHasValidToken] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
-    // 不要在useEffect中检查和跳转，只标记状态
-    // 给足够时间让hash参数加载
-    const checkToken = async () => {
-      // 等待一小段时间确保hash已加载
-      await new Promise(resolve => setTimeout(resolve, 500))
+    // 检查是否有有效的重置token
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
 
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const accessToken = hashParams.get('access_token')
-      const refreshToken = hashParams.get('refresh_token')
-
-      console.log('检查重置token:', {
-        hasHash: !!window.location.hash,
-        hashLength: window.location.hash.length,
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken
-      })
-
-      if (accessToken && refreshToken) {
-        setHasValidToken(true)
-      } else {
-        setHasValidToken(false)
-        toast.error('无效的重置链接，请重新申请')
-      }
-
-      setValidating(false)
+    if (!accessToken || !refreshToken) {
+      toast.error('无效的重置链接，请重新申请')
+      router.push('/')
     }
-
-    checkToken()
-  }, [])
-
-  // 如果验证完成且无效，才跳转
-  useEffect(() => {
-    if (!validating && !hasValidToken) {
-      const timer = setTimeout(() => {
-        router.push('/')
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [validating, hasValidToken, router])
+  }, [router])
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,36 +64,6 @@ function ResetPasswordForm() {
     }
   }
 
-  // 验证中显示加载
-  if (validating) {
-    return (
-      <div className="min-h-screen bg-seth-dark flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-seth-gold rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Key className="w-8 h-8 text-seth-dark" />
-          </div>
-          <p className="text-seth-gold">验证重置链接...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // 验证失败
-  if (!hasValidToken) {
-    return (
-      <div className="min-h-screen bg-seth-dark flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-            <XCircle className="w-8 h-8 text-white" />
-          </div>
-          <p className="text-red-400 mb-4">无效的重置链接</p>
-          <p className="text-gray-400 text-sm">正在跳转到首页...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // 验证成功，显示表单
   return (
     <div className="min-h-screen bg-seth-dark flex items-center justify-center px-4">
       <motion.div
@@ -189,9 +129,6 @@ function ResetPasswordForm() {
     </div>
   )
 }
-
-// 需要导入XCircle
-import { XCircle } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   return (
