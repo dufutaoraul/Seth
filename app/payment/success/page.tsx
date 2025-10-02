@@ -90,34 +90,48 @@ export default function PaymentSuccess() {
           }
         }
 
-        // 只有在user存在时才获取积分信息
-        if (user) {
-          // 获取最新的积分信息
+        // 尝试从订单号获取用户信息（即使Session丢失也能显示）
+        if (out_trade_no) {
+          console.log('从订单号获取用户信息:', out_trade_no)
+
+          // 获取订单信息
+          const { data: order, error: orderError } = await supabase
+            .from('payment_orders')
+            .select('user_id, order_type, membership_type, credits_to_add, payment_status')
+            .eq('order_no', out_trade_no)
+            .single()
+
+          if (!orderError && order) {
+            console.log('订单信息:', order)
+            setOrderType(order.order_type)
+
+            // 如果Session丢失但有订单，用订单的user_id获取积分
+            const userIdToQuery = user?.id || order.user_id
+
+            if (userIdToQuery) {
+              const { data: userCredits, error: creditsError } = await supabase
+                .from('user_credits')
+                .select('*')
+                .eq('user_id', userIdToQuery)
+                .single()
+
+              if (!creditsError && userCredits) {
+                console.log('支付成功页面获取到的用户积分:', userCredits)
+                setUserCredits(userCredits)
+              }
+            }
+          }
+        } else if (user) {
+          // 没有订单号但有Session，直接获取积分
           const { data: userCredits, error: creditsError } = await supabase
             .from('user_credits')
             .select('*')
             .eq('user_id', user.id)
             .single()
 
-          if (creditsError) {
-            console.error('获取积分信息失败:', creditsError)
-          } else {
+          if (!creditsError) {
             console.log('支付成功页面获取到的用户积分:', userCredits)
             setUserCredits(userCredits)
-          }
-
-          // 获取最新的订单信息，判断购买类型
-          if (out_trade_no) {
-            const { data: order, error: orderError } = await supabase
-              .from('payment_orders')
-              .select('order_type, membership_type, credits_to_add')
-              .eq('order_no', out_trade_no)
-              .single()
-
-            if (!orderError && order) {
-              console.log('订单信息:', order)
-              setOrderType(order.order_type)
-            }
           }
         }
       } catch (error) {
