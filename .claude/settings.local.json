@@ -27,7 +27,8 @@
       "Bash(python:*)",
       "Bash(git rm:*)",
       "Bash(grep:*)",
-      "Read(//d/**)"
+      "Read(//d/**)",
+      "Bash(git tag:*)"
     ],
     "deny": [],
     "ask": []

@@ -644,7 +644,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
             </div>
 
             {/* 对话历史 */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
               <h3 className="text-sm font-medium text-gray-400 mb-3 flex items-center">
                 <History className="w-4 h-4 mr-2" />
                 对话历史
