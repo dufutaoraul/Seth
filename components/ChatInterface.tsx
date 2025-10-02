@@ -587,7 +587,7 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
             initial={{ x: -300 }}
             animate={{ x: 0 }}
             exit={{ x: -300 }}
-            className="fixed lg:relative z-50 w-80 bg-gray-800 border-r border-gray-700 flex flex-col"
+            className="fixed lg:relative z-50 w-80 h-screen bg-gray-800 border-r border-gray-700 flex flex-col"
           >
             {/* 侧边栏头部 */}
             <div className="p-4 border-b border-gray-700">
