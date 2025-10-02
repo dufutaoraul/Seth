@@ -17,11 +17,16 @@ export default function HomePage() {
   const [rememberMe, setRememberMe] = useState(true) // 默认记住登录
   const router = useRouter()
 
-  // 页面加载时尝试从localStorage恢复邮箱
+  // 页面加载时尝试从localStorage恢复邮箱和密码
   useEffect(() => {
     const savedEmail = localStorage.getItem('saved_email')
+    const savedPassword = localStorage.getItem('saved_password')
     if (savedEmail) {
       setEmail(savedEmail)
+    }
+    if (savedPassword) {
+      setPassword(savedPassword)
+      setRememberMe(true)
     }
   }, [])
 
@@ -58,11 +63,13 @@ export default function HomePage() {
           return
         }
 
-        // 如果勾选"记住我"，保存邮箱到localStorage
+        // 如果勾选"记住我"，保存邮箱和密码到localStorage
         if (rememberMe) {
           localStorage.setItem('saved_email', email)
+          localStorage.setItem('saved_password', password)
         } else {
           localStorage.removeItem('saved_email')
+          localStorage.removeItem('saved_password')
         }
 
         toast.success('登录成功，正在跳转...')
@@ -294,7 +301,7 @@ export default function HomePage() {
                         onChange={(e) => setRememberMe(e.target.checked)}
                         className="w-4 h-4 text-seth-gold bg-gray-700 border-gray-600 rounded focus:ring-seth-gold focus:ring-2"
                       />
-                      <span className="ml-2 text-sm text-gray-300">记住邮箱</span>
+                      <span className="ml-2 text-sm text-gray-300">记住我</span>
                     </label>
                     <button
                       type="button"
