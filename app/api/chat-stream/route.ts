@@ -124,32 +124,34 @@ export async function POST(request: NextRequest) {
                   // 可以显示思考过程，暂时忽略
                   console.log('💭 AI思考中...')
                 }
-                // message 事件：Dify返回完整答案，我们计算增量并发送
+                // message 事件：Dify返回增量内容（每次answer是新增的部分）
                 else if (parsed.event === 'message') {
                   if (parsed.answer) {
-                    const newAnswer = parsed.answer
-                    // 计算增量部分（新答案比旧答案多出的部分）
-                    if (newAnswer.length > fullAnswer.length) {
-                      const delta = newAnswer.slice(fullAnswer.length)
-                      fullAnswer = newAnswer
+                    // Dify的answer本身就是增量，直接累加并发送
+                    fullAnswer += parsed.answer
 
-                      // 发送增量内容到前端
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                        type: 'delta',
-                        content: delta
-                      })}\n\n`))
-                    }
+                    // 直接发送增量内容到前端
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      type: 'delta',
+                      content: parsed.answer
+                    })}\n\n`))
+                  }
+                }
+                // agent_message 事件：智能助手模式的消息（也是增量）
+                else if (parsed.event === 'agent_message') {
+                  if (parsed.answer) {
+                    fullAnswer += parsed.answer
+
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                      type: 'delta',
+                      content: parsed.answer
+                    })}\n\n`))
                   }
                 }
                 // message_end 事件：消息结束
                 else if (parsed.event === 'message_end') {
                   difyConversationId = parsed.conversation_id
                   difyMessageId = parsed.id
-
-                  // 确保有最终答案
-                  if (parsed.answer && parsed.answer.length > fullAnswer.length) {
-                    fullAnswer = parsed.answer
-                  }
                 }
               } catch (e) {
                 console.error('解析SSE数据失败:', e)

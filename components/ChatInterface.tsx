@@ -247,8 +247,8 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       console.log('当前会话:', currentSession)
       console.log('现有消息数量:', messages.length)
 
-      // 调用简化版聊天API（已添加数据库保存功能）
-      const response = await fetch('/api/chat-simple', {
+      // 调用流式聊天API
+      const response = await fetch('/api/chat-stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,89 +258,94 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       })
 
       if (!response.ok) {
-        // 尝试获取详细错误信息
-        let errorMessage = '发送消息失败'
-        try {
-          const errorData = await response.json()
-          if (errorData.error) {
-            errorMessage = errorData.error
-          }
-          if (errorData.details) {
-            errorMessage += `: ${errorData.details}`
-          }
-          console.error('API错误详情:', errorData)
-        } catch (e) {
-          console.error('无法解析错误响应:', e)
-        }
-        throw new Error(errorMessage)
+        const errorText = await response.text()
+        throw new Error(errorText || '发送消息失败')
       }
 
-      const data = await response.json()
-
-      // 先添加用户消息和空的assistant消息
+      // 创建assistant消息占位符
       const assistantMessageId = `assistant-${Date.now()}`
-      setMessages(prev => [
-        ...prev.filter(m => !m.id.startsWith('temp-')),
-        data.userMessage,
-        {
-          ...data.assistantMessage,
-          id: assistantMessageId,
-          content: '', // 初始为空，准备打字机效果
-        },
-      ])
+      const tempAssistantMessage: ChatMessage = {
+        id: assistantMessageId,
+        session_id: currentSession?.id || '',
+        user_id: user.id,
+        message_type: 'assistant',
+        content: '',
+        tokens_used: 0,
+        created_at: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, tempAssistantMessage])
 
-      // 打字机效果：逐字显示assistant的回复
-      const fullContent = data.assistantMessage.content
-      let currentIndex = 0
-      const typingSpeed = 30 // 每个字符显示间隔（毫秒）
-
-      const typeNextChar = () => {
-        if (currentIndex < fullContent.length) {
-          currentIndex++
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === assistantMessageId
-                ? { ...m, content: fullContent.slice(0, currentIndex) }
-                : m
-            )
-          )
-          setTimeout(typeNextChar, typingSpeed)
-        } else {
-          // 打字完成，更新为最终的完整消息（包含所有字段）
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === assistantMessageId
-                ? data.assistantMessage
-                : m
-            )
-          )
-        }
+      // 读取SSE流
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('无法读取响应流')
       }
 
-      // 启动打字机效果
-      typeNextChar()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let fullAnswer = ''
+      let newSessionId = ''
+      let newConversationId = ''
+      let remainingCredits = credits?.remaining_credits || 0
 
-      // 立即更新积分显示（乐观更新）
-      console.log('=== 开始积分乐观更新 ===')
-      console.log('发送前积分状态:', JSON.stringify(credits, null, 2))
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
 
-      if (credits && credits.remaining_credits > 0) {
-        const optimisticCredits = {
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (!line.trim() || !line.startsWith('data: ')) continue
+
+            const data = line.slice(6)
+            if (data === '[DONE]') continue
+
+            try {
+              const parsed = JSON.parse(data)
+
+              if (parsed.type === 'delta' && parsed.content) {
+                // 收到增量内容，立即更新界面
+                fullAnswer += parsed.content
+                setMessages(prev =>
+                  prev.map(m =>
+                    m.id === assistantMessageId
+                      ? { ...m, content: fullAnswer }
+                      : m
+                  )
+                )
+              } else if (parsed.type === 'done') {
+                // 流结束
+                newSessionId = parsed.sessionId
+                newConversationId = parsed.conversationId
+                remainingCredits = parsed.remainingCredits
+              } else if (parsed.type === 'error') {
+                throw new Error(parsed.error || '处理失败')
+              }
+            } catch (e) {
+              console.error('解析SSE数据失败:', e)
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock()
+      }
+
+      // 更新积分
+      if (credits) {
+        setCredits({
           ...credits,
           used_credits: credits.used_credits + 1,
-          remaining_credits: credits.remaining_credits - 1
-        }
-        console.log('执行乐观更新:', JSON.stringify(optimisticCredits, null, 2))
-        setCredits(optimisticCredits)
-        console.log('积分已更新为:', optimisticCredits.remaining_credits)
-      } else {
-        console.warn('积分状态异常，无法执行乐观更新:', credits)
+          remaining_credits: remainingCredits
+        })
       }
 
       // 如果创建了新会话，更新当前会话
-      if (data.sessionId && (!currentSession || currentSession.id !== data.sessionId)) {
+      if (newSessionId && (!currentSession || currentSession.id !== newSessionId)) {
         const newSession = {
-          id: data.sessionId,
+          id: newSessionId,
           user_id: user.id,
           title: userMessage.slice(0, 20) + (userMessage.length > 20 ? '...' : ''),
           created_at: new Date().toISOString(),
