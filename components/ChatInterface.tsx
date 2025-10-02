@@ -782,8 +782,8 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                 {currentSession?.title || '选择或创建新对话'}
               </h1>
             </div>
-            <div className="hidden lg:flex items-center space-x-4">
-              {/* 导出按钮 */}
+            <div className="flex items-center space-x-2 lg:space-x-4">
+              {/* 导出按钮 - 手机端和电脑端都显示 */}
               {currentSession && messages.length > 0 && (
                 <button
                   onClick={exportHistory}
@@ -791,28 +791,31 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                   title="导出对话记录"
                 >
                   <Download size={18} />
-                  <span className="text-sm">导出</span>
+                  <span className="hidden lg:inline text-sm">导出</span>
                 </button>
               )}
-              {creditsLoading ? (
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-400">积分: </span>
-                  <div className="h-4 w-8 bg-gray-700 rounded animate-pulse"></div>
-                </div>
-              ) : (
+              {/* 电脑端显示积分和充值按钮 */}
+              <div className="hidden lg:flex items-center space-x-4">
+                {creditsLoading ? (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-400">积分: </span>
+                    <div className="h-4 w-8 bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => router.push('/membership')}
+                    className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                  >
+                    积分: <span className="text-seth-gold hover:text-yellow-300">{credits?.remaining_credits || 0}</span>
+                  </button>
+                )}
                 <button
                   onClick={() => router.push('/membership')}
-                  className="text-sm text-gray-400 hover:text-gray-300 transition-colors"
+                  className="text-seth-orange hover:text-orange-400 transition-colors"
                 >
-                  积分: <span className="text-seth-gold hover:text-yellow-300">{credits?.remaining_credits || 0}</span>
+                  <CreditCard className="w-5 h-5" />
                 </button>
-              )}
-              <button
-                onClick={() => router.push('/membership')}
-                className="text-seth-orange hover:text-orange-400 transition-colors"
-              >
-                <CreditCard className="w-5 h-5" />
-              </button>
+              </div>
             </div>
           </div>
         </div>
