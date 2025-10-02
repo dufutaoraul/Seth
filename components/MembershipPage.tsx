@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { UserCredits, PaymentOrder, supabase } from '@/lib/supabase'
-import { MEMBERSHIP_PLANS, CREDIT_PACKS, MembershipType, CreditPackType, ProductType } from '@/lib/zpay'
+import { MEMBERSHIP_PLANS, CREDIT_PACKS, UPGRADE_PLAN, MembershipType, CreditPackType, ProductType } from '@/lib/zpay'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
@@ -217,10 +217,10 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
                   </div>
                   <h3 className="text-xl font-bold mb-2">标准会员</h3>
                   <div className="text-3xl font-bold mb-4">
-                    3<span className="text-lg text-gray-400">次对话</span>
+                    {MEMBERSHIP_PLANS['标准会员'].credits}<span className="text-lg text-gray-400">积分</span>
                   </div>
                   <div className="text-2xl font-bold text-seth-gold mb-4">
-                    ¥1<span className="text-sm text-gray-400">/月</span>
+                    ¥{MEMBERSHIP_PLANS['标准会员'].price}<span className="text-sm text-gray-400">/月</span>
                   </div>
                   <button
                     onClick={() => handlePurchase('标准会员')}
@@ -248,10 +248,10 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
                   </div>
                   <h3 className="text-xl font-bold mb-2">高级会员</h3>
                   <div className="text-3xl font-bold mb-4">
-                    6<span className="text-lg text-gray-400">次对话</span>
+                    {MEMBERSHIP_PLANS['高级会员'].credits}<span className="text-lg text-gray-400">积分</span>
                   </div>
                   <div className="text-2xl font-bold text-seth-gold mb-4">
-                    ¥2<span className="text-sm text-gray-400">/月</span>
+                    ¥{MEMBERSHIP_PLANS['高级会员'].price}<span className="text-sm text-gray-400">/月</span>
                   </div>
                   <button
                     onClick={() => handlePurchase('高级会员')}
@@ -287,10 +287,10 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
                   <h3 className="text-2xl font-bold mb-2">升级到高级会员</h3>
                   <p className="text-gray-400 mb-4">补差价即可升级，到期时间不变</p>
                   <div className="text-3xl font-bold mb-2">
-                    +3<span className="text-lg text-gray-400">次对话</span>
+                    +{UPGRADE_PLAN['升级到高级'].credits}<span className="text-lg text-gray-400">积分</span>
                   </div>
                   <div className="text-2xl font-bold text-seth-gold mb-6">
-                    ¥1<span className="text-sm text-gray-400"> 补差价</span>
+                    ¥{UPGRADE_PLAN['升级到高级'].price}<span className="text-sm text-gray-400"> 补差价</span>
                   </div>
                   <button
                     onClick={() => handlePurchase('升级到高级')}
@@ -336,7 +336,7 @@ export default function MembershipPage({ user, userCredits, paymentHistory }: Pr
 
                       <div className="text-3xl font-bold mb-4">
                         {pack.credits}
-                        <span className="text-lg text-gray-400">次对话</span>
+                        <span className="text-lg text-gray-400">积分</span>
                       </div>
 
                       <div className="text-2xl font-bold text-blue-400 mb-4">

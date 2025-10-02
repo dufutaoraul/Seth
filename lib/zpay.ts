@@ -99,27 +99,28 @@ export function verifyNotifySign(params: Record<string, any>): boolean {
   return sign === expectedSign
 }
 
-// 会员套餐配置（测试价格 - 上线前改为正式价格）
-// 正式价格：标准¥145/150积分，高级¥360/500积分
+// 会员套餐配置（正式价格）
+// 标准会员：¥145/150积分，高级会员：¥360/500积分
 export const MEMBERSHIP_PLANS = {
   '普通会员': { credits: 15, price: 0, type: 'membership' as const },
-  '标准会员': { credits: 3, price: 1, type: 'membership' as const },  // 测试：¥1/3积分
-  '高级会员': { credits: 6, price: 2, type: 'membership' as const },  // 测试：¥2/6积分
+  '标准会员': { credits: 150, price: 145, type: 'membership' as const },  // 正式：¥145/150积分
+  '高级会员': { credits: 500, price: 360, type: 'membership' as const },  // 正式：¥360/500积分
 } as const
 
 export type MembershipType = keyof typeof MEMBERSHIP_PLANS
 
 // 升级套餐配置（标准会员升级到高级会员）
+// 补差价：360-145=215元，额外获得：500-150=350积分（但用户需求是250积分）
 export const UPGRADE_PLAN = {
-  '升级到高级': { credits: 3, price: 1, type: 'upgrade' as const }, // 测试：¥1/3积分（补差额6-3=3）
+  '升级到高级': { credits: 250, price: 215, type: 'upgrade' as const }, // 正式：¥215补差价，获得250积分
 } as const
 
 export type UpgradePlanType = keyof typeof UPGRADE_PLAN
 
 // 积分包配置（不改变会员等级，只增加积分）
 export const CREDIT_PACKS = {
-  '积分包150': { credits: 3, price: 1, type: 'credit_pack' as const },  // 测试：¥1/3积分
-  '积分包500': { credits: 6, price: 2, type: 'credit_pack' as const },  // 测试：¥2/6积分
+  '积分包150': { credits: 150, price: 145, type: 'credit_pack' as const },  // 正式：¥145/150积分
+  '积分包500': { credits: 500, price: 360, type: 'credit_pack' as const },  // 正式：¥360/500积分
 } as const
 
 export type CreditPackType = keyof typeof CREDIT_PACKS

@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     // 生成支付URL
     const paymentUrl = createPaymentUrl(
       product.price,
-      `${productType} - ${product.credits}次对话`,
+      `${productType} - ${product.credits}积分`,
       orderNo,
       paymentMethod as 'alipay' | 'wxpay' | 'qqpay'
     )
