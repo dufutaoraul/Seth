@@ -17,19 +17,28 @@ export default function PaymentSuccess() {
   useEffect(() => {
     const checkUserAndLoadCredits = async () => {
       try {
-        // 检查用户认证状态
-        const { data: { user }, error } = await supabase.auth.getUser()
+        // 先尝试从Session恢复
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-        if (error || !user) {
-          console.log('用户Session丢失，尝试从支付回调中恢复用户信息')
+        if (session?.user) {
+          console.log('从Session恢复用户信息成功')
+          setUser(session.user)
+        } else {
+          // Session不存在，尝试刷新
+          console.log('Session不存在，尝试刷新...')
+          const { data: { user }, error } = await supabase.auth.getUser()
 
-          // 不要直接跳转，而是设置loading=false，让用户看到支付成功页面
-          // 用户可以点击"开始对话"按钮，会自动引导到登录页面
-          setLoading(false)
-          return
+          if (error || !user) {
+            console.log('用户Session丢失，尝试从支付回调中恢复用户信息')
+
+            // 不要直接跳转，而是设置loading=false，让用户看到支付成功页面
+            // 用户可以点击"开始对话"按钮，会自动引导到登录页面
+            setLoading(false)
+            return
+          }
+
+          setUser(user)
         }
-
-        setUser(user)
 
         // ⭐ 处理ZPay的return_url回调参数
         const urlParams = new URLSearchParams(window.location.search)
