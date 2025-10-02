@@ -553,18 +553,31 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
         content += `${msg.content}\n\n`
       })
 
-      // 创建下载链接
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `赛斯对话-${currentSession.title}-${new Date().toLocaleDateString()}.txt`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
+      // 检测是否在移动设备或微信浏览器
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      const isWeChat = /MicroMessenger/i.test(navigator.userAgent)
 
-      toast.success('对话记录已导出')
+      if (isMobile || isWeChat) {
+        // 移动端：复制到剪贴板
+        navigator.clipboard.writeText(content).then(() => {
+          toast.success('对话记录已复制到剪贴板，可以粘贴到其他应用保存')
+        }).catch(() => {
+          // 如果clipboard API失败，显示内容让用户手动复制
+          alert('对话记录：\n\n' + content.substring(0, 500) + '...\n\n请长按复制全部内容')
+        })
+      } else {
+        // 桌面端：下载文件
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `赛斯对话-${currentSession.title}-${new Date().toLocaleDateString()}.txt`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        toast.success('对话记录已导出')
+      }
     } catch (error) {
       console.error('导出失败:', error)
       toast.error('导出失败，请重试')
