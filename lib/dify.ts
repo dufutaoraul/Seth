@@ -52,6 +52,26 @@ export async function sendMessageToDify(
       }
     )
 
+    // ⭐⭐⭐ 打印完整的Dify响应，用于验证是否包含Token信息 ⭐⭐⭐
+    console.log('========================================')
+    console.log('🔍 完整Dify API响应:')
+    console.log(JSON.stringify(response.data, null, 2))
+    console.log('========================================')
+
+    // 特别检查是否有Token相关字段
+    if (response.data.metadata) {
+      console.log('✅ 发现 metadata 字段:', JSON.stringify(response.data.metadata, null, 2))
+    }
+    if (response.data.usage) {
+      console.log('✅ 发现 usage 字段:', JSON.stringify(response.data.usage, null, 2))
+    }
+    if (response.data.metadata?.usage) {
+      console.log('✅ 发现 metadata.usage 字段:', JSON.stringify(response.data.metadata.usage, null, 2))
+    }
+    if (!response.data.metadata && !response.data.usage) {
+      console.log('❌ 未发现任何Token统计信息')
+    }
+
     return {
       conversation_id: response.data.conversation_id,
       message_id: response.data.id,

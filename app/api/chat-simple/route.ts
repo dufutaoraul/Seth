@@ -183,9 +183,21 @@ export async function POST(request: NextRequest) {
     // 调用 Dify API
     let difyResponse
     try {
-      console.log('Calling Dify API with message:', message)
+      console.log('========================================')
+      console.log('📤 准备调用 Dify API')
+      console.log('用户消息:', message)
+      console.log('Conversation ID:', conversationId)
+      console.log('========================================')
+
       difyResponse = await sendMessageToDify(message, user.id, conversationId)
-      console.log('Dify response received:', difyResponse)
+
+      console.log('========================================')
+      console.log('📥 Dify API 返回结果:')
+      console.log('Conversation ID:', difyResponse.conversation_id)
+      console.log('Message ID:', difyResponse.message_id)
+      console.log('回复内容长度:', difyResponse.answer.length, '字符')
+      console.log('完整响应:', JSON.stringify(difyResponse, null, 2))
+      console.log('========================================')
     } catch (difyError: any) {
       console.error('Dify API error:', difyError)
 
