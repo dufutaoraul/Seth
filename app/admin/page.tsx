@@ -44,11 +44,29 @@ export default function AdminPage() {
     credits: any
     recent_orders: OrderInfo[]
   } | null>(null)
-  const [loadingOrdersEmail, setLoadingOrdersEmail] = useState<string | null>(null) // 修改：记录正在加载订单的用户邮箱
+  const [loadingOrdersEmail, setLoadingOrdersEmail] = useState<string | null>(null)
+  const [filterMode, setFilterMode] = useState<'all' | 'real' | 'test'>('all') // 筛选模式
   const router = useRouter()
 
   // 管理员密码
   const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin'
+
+  // 真实用户的判断标准：2025年10月3日 00:00:00之后创建的
+  const REAL_USER_CUTOFF = new Date('2025-10-03T00:00:00')
+
+  // 判断是否为真实用户
+  const isRealUser = (user: UserInfo) => {
+    const createdAt = new Date(user.created_at)
+    return createdAt >= REAL_USER_CUTOFF
+  }
+
+  // 筛选用户列表
+  const filteredUsers = users.filter(user => {
+    if (filterMode === 'all') return true
+    if (filterMode === 'real') return isRealUser(user)
+    if (filterMode === 'test') return !isRealUser(user)
+    return true
+  })
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) {
@@ -147,49 +165,89 @@ export default function AdminPage() {
     <div className="min-h-screen bg-seth-dark p-8">
       <div className="max-w-7xl mx-auto">
         {/* 头部 */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-seth-gold">用户管理后台</h1>
-          <div className="flex gap-4">
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-seth-gold">用户管理后台</h1>
+            <div className="flex gap-4">
+              <button
+                onClick={loadUsers}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+              >
+                刷新数据
+              </button>
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem('admin_auth')
+                  setIsAuthenticated(false)
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition"
+              >
+                退出登录
+              </button>
+            </div>
+          </div>
+
+          {/* 筛选按钮 */}
+          <div className="flex gap-3">
             <button
-              onClick={loadUsers}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+              onClick={() => setFilterMode('all')}
+              className={`px-4 py-2 rounded font-semibold transition ${
+                filterMode === 'all'
+                  ? 'bg-seth-gold text-black'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
             >
-              刷新数据
+              全部用户 ({users.length})
             </button>
             <button
-              onClick={() => {
-                sessionStorage.removeItem('admin_auth')
-                setIsAuthenticated(false)
-              }}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition"
+              onClick={() => setFilterMode('real')}
+              className={`px-4 py-2 rounded font-semibold transition ${
+                filterMode === 'real'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
             >
-              退出登录
+              ⭐ 真实用户 ({users.filter(u => isRealUser(u)).length})
             </button>
+            <button
+              onClick={() => setFilterMode('test')}
+              className={`px-4 py-2 rounded font-semibold transition ${
+                filterMode === 'test'
+                  ? 'bg-gray-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              测试数据 ({users.filter(u => !isRealUser(u)).length})
+            </button>
+          </div>
+
+          <div className="text-sm text-gray-400">
+            💡 真实用户定义：2025年10月3日之后注册的用户
           </div>
         </div>
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-gray-800 p-6 rounded-lg">
-            <div className="text-gray-400 text-sm mb-2">总用户数</div>
-            <div className="text-3xl font-bold text-white">{users.length}</div>
+            <div className="text-gray-400 text-sm mb-2">当前显示</div>
+            <div className="text-3xl font-bold text-white">{filteredUsers.length}</div>
           </div>
           <div className="bg-gray-800 p-6 rounded-lg">
             <div className="text-gray-400 text-sm mb-2">付费会员</div>
             <div className="text-3xl font-bold text-seth-gold">
-              {users.filter(u => u.current_membership !== '普通会员').length}
+              {filteredUsers.filter(u => u.current_membership !== '普通会员').length}
             </div>
           </div>
           <div className="bg-gray-800 p-6 rounded-lg">
             <div className="text-gray-400 text-sm mb-2">标准会员</div>
             <div className="text-3xl font-bold text-seth-orange">
-              {users.filter(u => u.current_membership === '标准会员').length}
+              {filteredUsers.filter(u => u.current_membership === '标准会员').length}
             </div>
           </div>
           <div className="bg-gray-800 p-6 rounded-lg">
             <div className="text-gray-400 text-sm mb-2">高级会员</div>
             <div className="text-3xl font-bold text-yellow-400">
-              {users.filter(u => u.current_membership === '高级会员').length}
+              {filteredUsers.filter(u => u.current_membership === '高级会员').length}
             </div>
           </div>
         </div>
@@ -212,9 +270,18 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.user_id} className="border-t border-gray-700 hover:bg-gray-750">
-                    <td className="p-4 text-white">{user.email}</td>
+                {filteredUsers.map((user) => (
+                  <tr key={user.user_id} className={`border-t border-gray-700 hover:bg-gray-750 ${
+                    isRealUser(user) ? 'bg-green-900 bg-opacity-10' : ''
+                  }`}>
+                    <td className="p-4 text-white">
+                      <div className="flex items-center gap-2">
+                        {isRealUser(user) && (
+                          <span className="text-green-400 text-sm" title="真实付费用户">⭐</span>
+                        )}
+                        {user.email}
+                      </div>
+                    </td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs font-semibold ${
                         user.current_membership === '高级会员' ? 'bg-yellow-500 text-black' :
