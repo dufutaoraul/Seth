@@ -152,6 +152,28 @@ export async function POST(request: NextRequest) {
                 else if (parsed.event === 'message_end') {
                   difyConversationId = parsed.conversation_id
                   difyMessageId = parsed.id
+
+                  // ⭐⭐⭐ 检测 Token 信息（message_end 是最后一个事件）⭐⭐⭐
+                  console.log('========================================')
+                  console.log('🏁 message_end 事件（最后一个事件）')
+                  console.log('完整事件内容:', JSON.stringify(parsed, null, 2))
+                  console.log('========================================')
+
+                  // 检查各种可能的 Token 字段
+                  if (parsed.metadata?.usage) {
+                    console.log('✅✅✅ 发现 metadata.usage 字段！')
+                    console.log(JSON.stringify(parsed.metadata.usage, null, 2))
+                  }
+                  if (parsed.usage) {
+                    console.log('✅✅✅ 发现 usage 字段！')
+                    console.log(JSON.stringify(parsed.usage, null, 2))
+                  }
+                  if (parsed.metadata) {
+                    console.log('✅ 发现 metadata 字段:', JSON.stringify(parsed.metadata, null, 2))
+                  }
+                  if (!parsed.metadata?.usage && !parsed.usage && !parsed.metadata) {
+                    console.log('❌ message_end 事件中未发现 Token 统计信息')
+                  }
                 }
               } catch (e) {
                 console.error('解析SSE数据失败:', e)
