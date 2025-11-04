@@ -126,9 +126,51 @@ async function handlePaymentNotify(params: Record<string, any>) {
       return new Response('fail', { status: 500 })
     }
 
-    // 更新用户积分
-    const newTotalCredits = currentCredits.total_credits + paymentOrder.credits_to_add
-    console.log(`积分更新: ${currentCredits.total_credits} + ${paymentOrder.credits_to_add} = ${newTotalCredits}`)
+    // ⭐ 检查付费会员是否过期，如果过期先重置积分
+    let baseCredits = currentCredits
+    const now = new Date()
+    if (currentCredits.membership_expires_at && currentCredits.current_membership !== '普通会员') {
+      const expireDate = new Date(currentCredits.membership_expires_at)
+
+      if (expireDate <= now) {
+        // 付费会员过期：先清零所有积分，重置为15条永久免费积分
+        console.log('检测到会员已过期，先重置积分再添加新购买的积分:', {
+          user_id: paymentOrder.user_id,
+          membership: currentCredits.current_membership,
+          expired_at: currentCredits.membership_expires_at,
+          old_total_credits: currentCredits.total_credits,
+          old_used_credits: currentCredits.used_credits
+        })
+
+        const { data: resetCredits, error: resetError } = await supabaseAdmin
+          .from('user_credits')
+          .update({
+            total_credits: 15,
+            used_credits: 0,
+            current_membership: '普通会员',
+            membership_expires_at: null,
+          })
+          .eq('user_id', paymentOrder.user_id)
+          .select()
+          .single()
+
+        if (resetError) {
+          console.error('重置积分失败:', resetError)
+          return new Response('fail', { status: 500 })
+        }
+
+        // 使用重置后的积分作为基础
+        baseCredits = resetCredits
+        console.log('积分已重置，新的基础积分:', {
+          total_credits: baseCredits.total_credits,
+          used_credits: baseCredits.used_credits
+        })
+      }
+    }
+
+    // 更新用户积分（在重置后的基础上添加）
+    const newTotalCredits = baseCredits.total_credits + paymentOrder.credits_to_add
+    console.log(`积分更新: ${baseCredits.total_credits} + ${paymentOrder.credits_to_add} = ${newTotalCredits}`)
 
     // 区分订单类型：membership（会员套餐）、upgrade（升级套餐）、credit_pack（积分包）
     const orderType = paymentOrder.order_type || 'membership'

@@ -92,6 +92,47 @@ export async function GET(request: NextRequest) {
         }
       })
     } else {
+      // ⭐ 检查付费会员是否过期
+      const now = new Date()
+      if (userCredits.membership_expires_at && userCredits.current_membership !== '普通会员') {
+        const expireDate = new Date(userCredits.membership_expires_at)
+
+        if (expireDate <= now) {
+          // 付费会员过期：清零所有积分，重置为15条永久免费积分
+          console.log('付费会员已过期，清零积分并重置为15条永久免费积分:', {
+            user_id: user.id,
+            membership: userCredits.current_membership,
+            expired_at: userCredits.membership_expires_at,
+            old_total_credits: userCredits.total_credits,
+            old_used_credits: userCredits.used_credits
+          })
+
+          const { data: resetCredits, error: resetError } = await supabaseAdmin
+            .from('user_credits')
+            .update({
+              total_credits: 15,
+              used_credits: 0,
+              current_membership: '普通会员',
+              membership_expires_at: null, // 免费积分永久有效，清除过期时间
+            })
+            .eq('user_id', user.id)
+            .select()
+            .single()
+
+          if (resetError) {
+            console.error('重置积分失败:', resetError)
+          } else {
+            // 返回重置后的积分
+            return NextResponse.json({
+              credits: {
+                ...resetCredits,
+                remaining_credits: resetCredits.total_credits - resetCredits.used_credits
+              }
+            })
+          }
+        }
+      }
+
       // 计算剩余积分
       const remaining_credits = userCredits.total_credits - userCredits.used_credits
 
