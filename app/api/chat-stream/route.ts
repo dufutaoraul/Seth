@@ -81,6 +81,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ⭐ 检查会话是否已总结（只读）
+    if (actualSessionId) {
+      const { data: sessionData } = await supabaseAdmin
+        .from('chat_sessions')
+        .select('is_readonly, is_summarized')
+        .eq('id', actualSessionId)
+        .single()
+
+      if (sessionData?.is_readonly) {
+        return new Response('此对话已总结完成，不可继续。请创建新对话。', { status: 403 })
+      }
+    }
+
+    // ⭐ 计算当前会话的轮数（user消息数 = 轮数）
+    let currentRoundCount = 0
+    if (actualSessionId) {
+      const { data: userMessages } = await supabaseAdmin
+        .from('chat_messages')
+        .select('id')
+        .eq('session_id', actualSessionId)
+        .eq('message_type', 'user')
+
+      currentRoundCount = userMessages?.length || 0
+    }
+
     // 调用 Dify 流式 API
     const difyResponse = await sendMessageToDifyStreaming(message, user.id, conversationId)
 
@@ -118,6 +143,11 @@ export async function POST(request: NextRequest) {
               try {
                 const parsed = JSON.parse(data)
                 console.log('📨 Dify事件:', parsed.event)
+
+                // ⭐ 打印所有非message事件的完整内容
+                if (parsed.event !== 'message' && parsed.event !== 'agent_message') {
+                  console.log('🔔 特殊事件完整内容:', JSON.stringify(parsed, null, 2))
+                }
 
                 // agent_thought 事件：AI思考过程
                 if (parsed.event === 'agent_thought') {
@@ -207,12 +237,36 @@ export async function POST(request: NextRequest) {
             ])
           }
 
+          // ⭐ 计算新的轮数（加上刚刚发送的这一轮）
+          const newRoundCount = currentRoundCount + 1
+          console.log(`📊 当前对话轮数: ${newRoundCount}`)
+
+          // ⭐ 检查是否需要警告或触发总结
+          let roundWarning = null
+          if (newRoundCount >= 45 && newRoundCount < 50) {
+            roundWarning = {
+              roundCount: newRoundCount,
+              limit: 50,
+              message: `当前对话已进行 ${newRoundCount} 轮，到50轮对话时由于逼近大模型上下文限制，将会触发自动总结打包，不可再更改哦。`
+            }
+          } else if (newRoundCount >= 50) {
+            // 达到50轮，前端需要强制总结
+            roundWarning = {
+              roundCount: newRoundCount,
+              limit: 50,
+              mustSummarize: true,
+              message: `对话已达到 ${newRoundCount} 轮，已触发自动总结。`
+            }
+          }
+
           // 发送完成信号
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'done',
             sessionId: actualSessionId,
             conversationId: difyConversationId,
-            remainingCredits: userCredits.remaining_credits - 1
+            remainingCredits: userCredits.remaining_credits - 1,
+            roundCount: newRoundCount,
+            roundWarning: roundWarning
           })}\n\n`))
 
         } catch (error) {

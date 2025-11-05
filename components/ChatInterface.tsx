@@ -43,6 +43,13 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
   const [sidebarOpen, setSidebarOpen] = useState(true) // 默认打开侧边栏显示会话列表
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null) // 正在编辑的会话ID
   const [editingTitle, setEditingTitle] = useState('') // 编辑中的标题
+
+  // ⭐ 对话轮数限制相关状态
+  const [currentRoundCount, setCurrentRoundCount] = useState(0) // 当前轮数
+  const [showSummaryDialog, setShowSummaryDialog] = useState(false) // 显示总结确认对话框
+  const [summaryPreview, setSummaryPreview] = useState('') // 总结预览
+  const [summarizing, setSummarizing] = useState(false) // 正在生成总结
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -358,6 +365,22 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                 newSessionId = parsed.sessionId
                 newConversationId = parsed.conversationId
                 remainingCredits = parsed.remainingCredits
+
+                // ⭐ 处理轮数警告
+                if (parsed.roundCount) {
+                  setCurrentRoundCount(parsed.roundCount)
+                }
+                if (parsed.roundWarning) {
+                  const warning = parsed.roundWarning
+                  if (warning.mustSummarize) {
+                    // 达到50轮，显示强制总结对话框
+                    toast(warning.message, { icon: '⚠️', duration: 5000 })
+                    setShowSummaryDialog(true)
+                  } else if (warning.roundCount >= 45) {
+                    // 45-49轮，显示警告提示
+                    toast(warning.message, { icon: '⚠️', duration: 5000 })
+                  }
+                }
               } else if (parsed.type === 'error') {
                 throw new Error(parsed.error || '处理失败')
               }
@@ -582,6 +605,71 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       console.error('导出失败:', error)
       toast.error('导出失败，请重试')
     }
+  }
+
+  // ⭐ 生成总结并创建新对话
+  const handleSummarize = async () => {
+    if (!currentSession) return
+
+    try {
+      setSummarizing(true)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        toast.error('认证过期，请重新登录')
+        return
+      }
+
+      const response = await fetch('/api/chat-summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          sessionId: currentSession.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '总结生成失败')
+      }
+
+      const data = await response.json()
+
+      // 总结成功，切换到新会话
+      toast.success('对话已总结，已为您创建新对话')
+
+      // 刷新会话列表
+      const { data: updatedSessions } = await supabase
+        .from('chat_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+
+      if (updatedSessions) {
+        setSessions(updatedSessions)
+        // 自动选择新会话
+        const newSession = updatedSessions.find((s: ChatSession) => s.id === data.newSessionId)
+        if (newSession) {
+          setCurrentSession(newSession)
+          loadSessionMessages(newSession.id)
+        }
+      }
+
+      setShowSummaryDialog(false)
+    } catch (error: any) {
+      console.error('生成总结失败:', error)
+      toast.error(error.message || '生成总结失败，请重试')
+    } finally {
+      setSummarizing(false)
+    }
+  }
+
+  // 取消总结，继续当前对话
+  const handleCancelSummarize = () => {
+    setShowSummaryDialog(false)
+    toast('您可以继续当前对话，但仍建议及时总结', { icon: '💡' })
   }
 
   // 登出
@@ -925,6 +1013,49 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
             </div>
           )}
         </div>
+
+        {/* ⭐ 总结确认对话框 */}
+        {showSummaryDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gray-800 rounded-lg p-6 max-w-lg w-full border border-seth-gold shadow-xl"
+            >
+              <div className="flex items-center mb-4">
+                <AlertCircle className="w-6 h-6 text-seth-gold mr-2" />
+                <h3 className="text-xl font-bold text-seth-gold">对话即将达到上下文限制</h3>
+              </div>
+              <div className="text-gray-300 space-y-3 mb-6">
+                <p>
+                  当前对话已进行 <span className="text-seth-gold font-bold">{currentRoundCount}</span> 轮
+                </p>
+                <p>
+                  到50轮对话时由于逼近大模型上下文限制，将会触发自动总结打包，不可再更改哦。
+                </p>
+                <p className="text-sm text-gray-400">
+                  💡 建议您现在确认总结，AI将自动生成对话要点，并为您创建一个新对话。总结功能不消耗积分。
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleSummarize}
+                  disabled={summarizing}
+                  className="flex-1 bg-seth-gold text-seth-dark px-4 py-3 rounded-lg font-medium hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {summarizing ? '正在生成总结...' : '确认总结并开启新对话'}
+                </button>
+                <button
+                  onClick={handleCancelSummarize}
+                  disabled={summarizing}
+                  className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  取消
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         {/* 输入区域 */}
         <div className="border-t border-gray-700 p-4">
