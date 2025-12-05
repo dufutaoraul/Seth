@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         user_messages: messages?.filter(m => m.message_type === 'user').length || 0,
         assistant_messages: messages?.filter(m => m.message_type === 'assistant').length || 0,
         other_types: messages?.filter(m => m.message_type !== 'user' && m.message_type !== 'assistant').length || 0,
-        message_types_found: [...new Set(messages?.map(m => m.message_type) || [])],
+        message_types_found: Array.from(new Set(messages?.map(m => m.message_type) || [])),
       }
 
       // 返回消息详情（截断内容以便查看）

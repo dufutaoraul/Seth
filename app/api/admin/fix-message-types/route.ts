@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
           .eq('session_id', session.id)
 
         const types = (messages || []).map(m => m.message_type)
-        const uniqueTypes = [...new Set(types)]
+        const uniqueTypes = Array.from(new Set(types))
 
         return {
           session_id: session.id,
