@@ -94,10 +94,16 @@ export async function GET(request: NextRequest) {
     } else {
       // ⭐ 检查付费会员是否过期
       const now = new Date()
+      let membershipExpired = false
+      let expiredMembershipType = ''
+
       if (userCredits.membership_expires_at && userCredits.current_membership !== '普通会员') {
         const expireDate = new Date(userCredits.membership_expires_at)
 
         if (expireDate <= now) {
+          membershipExpired = true
+          expiredMembershipType = userCredits.current_membership
+
           // 付费会员过期：清零所有积分，重置为15条永久免费积分
           console.log('付费会员已过期，清零积分并重置为15条永久免费积分:', {
             user_id: user.id,
@@ -122,19 +128,60 @@ export async function GET(request: NextRequest) {
           if (resetError) {
             console.error('重置积分失败:', resetError)
           } else {
-            // 返回重置后的积分
+            // 返回重置后的积分，包含会员到期提醒
             return NextResponse.json({
               credits: {
                 ...resetCredits,
                 remaining_credits: resetCredits.total_credits - resetCredits.used_credits
+              },
+              // ⭐ 会员到期提醒信息
+              membershipExpiredNotice: {
+                expired: true,
+                previousMembership: expiredMembershipType,
+                message: `您的${expiredMembershipType}已到期，积分已重置为15条永久免费积分。如需继续享受更多服务，请续费。`,
+                newCredits: 15
               }
             })
           }
         }
       }
 
-      // 计算剩余积分
-      const remaining_credits = userCredits.total_credits - userCredits.used_credits
+      // 计算剩余积分（确保不为负数）
+      const remaining_credits = Math.max(0, userCredits.total_credits - userCredits.used_credits)
+
+      // ⭐ 如果积分为负数，自动修复
+      if (userCredits.total_credits - userCredits.used_credits < 0) {
+        console.warn('⚠️ 检测到负积分，自动修复:', {
+          user_id: user.id,
+          total: userCredits.total_credits,
+          used: userCredits.used_credits,
+          calculated: userCredits.total_credits - userCredits.used_credits
+        })
+
+        // 重置为15条免费积分
+        const { data: fixedCredits, error: fixError } = await supabaseAdmin
+          .from('user_credits')
+          .update({
+            total_credits: 15,
+            used_credits: 0,
+            current_membership: '普通会员',
+            membership_expires_at: null,
+          })
+          .eq('user_id', user.id)
+          .select()
+          .single()
+
+        if (!fixError && fixedCredits) {
+          return NextResponse.json({
+            credits: {
+              ...fixedCredits,
+              remaining_credits: 15
+            },
+            autoFixed: true,
+            message: '您的积分已自动修复，重置为15条免费积分。'
+          })
+        }
+      }
 
       console.log('用户积分信息:', {
         total: userCredits.total_credits,

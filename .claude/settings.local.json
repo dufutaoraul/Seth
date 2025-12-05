@@ -28,7 +28,10 @@
       "Bash(git rm:*)",
       "Bash(grep:*)",
       "Read(//d/**)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "WebSearch",
+      "WebFetch(domain:docs.dify.ai)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

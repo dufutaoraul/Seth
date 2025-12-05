@@ -50,6 +50,14 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
   const [summaryPreview, setSummaryPreview] = useState('') // 总结预览
   const [summarizing, setSummarizing] = useState(false) // 正在生成总结
 
+  // ⭐ 会员到期提醒状态
+  const [showMembershipExpiredDialog, setShowMembershipExpiredDialog] = useState(false)
+  const [membershipExpiredInfo, setMembershipExpiredInfo] = useState<{
+    previousMembership: string
+    message: string
+    newCredits: number
+  } | null>(null)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -169,6 +177,24 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
 
       if (response.ok) {
         const data = await response.json()
+
+        // ⭐ 检查是否有会员到期提醒
+        if (data.membershipExpiredNotice?.expired) {
+          console.log('会员已到期，显示提醒弹窗:', data.membershipExpiredNotice)
+          setMembershipExpiredInfo({
+            previousMembership: data.membershipExpiredNotice.previousMembership,
+            message: data.membershipExpiredNotice.message,
+            newCredits: data.membershipExpiredNotice.newCredits
+          })
+          setShowMembershipExpiredDialog(true)
+        }
+
+        // ⭐ 检查是否有自动修复
+        if (data.autoFixed) {
+          console.log('积分已自动修复:', data.message)
+          toast.success(data.message || '您的积分已自动修复')
+        }
+
         return data.credits
       }
       return null
@@ -1051,6 +1077,50 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
                   className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   取消
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* ⭐ 会员到期提醒弹窗 */}
+        {showMembershipExpiredDialog && membershipExpiredInfo && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-gray-800 rounded-lg p-6 max-w-lg w-full border border-seth-orange shadow-xl"
+            >
+              <div className="flex items-center mb-4">
+                <AlertCircle className="w-6 h-6 text-seth-orange mr-2" />
+                <h3 className="text-xl font-bold text-seth-orange">会员已到期</h3>
+              </div>
+              <div className="text-gray-300 space-y-3 mb-6">
+                <p>
+                  您的 <span className="text-seth-gold font-bold">{membershipExpiredInfo.previousMembership}</span> 已到期
+                </p>
+                <p>
+                  系统已为您重置为 <span className="text-green-400 font-bold">{membershipExpiredInfo.newCredits}</span> 条永久有效的免费积分。
+                </p>
+                <p className="text-sm text-gray-400">
+                  💡 如需继续享受更多服务，请前往会员中心续费。续费后，这15条免费积分也会一并保留。
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowMembershipExpiredDialog(false)
+                    router.push('/membership')
+                  }}
+                  className="flex-1 bg-seth-gold text-seth-dark px-4 py-3 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+                >
+                  前往续费
+                </button>
+                <button
+                  onClick={() => setShowMembershipExpiredDialog(false)}
+                  className="px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  我知道了
                 </button>
               </div>
             </motion.div>

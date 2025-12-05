@@ -40,28 +40,61 @@ export async function POST(request: NextRequest) {
     // 使用管理员权限检查积分
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { data: userCredits } = await supabaseAdmin
+    let { data: userCredits } = await supabaseAdmin
       .from('user_credits')
       .select('*')
       .eq('user_id', user.id)
       .single()
 
-    if (!userCredits || userCredits.remaining_credits < 1) {
-      return new Response('积分不足', { status: 402 })
-    }
-
-    // 检查并处理会员过期
+    // ⭐ 优先检查并处理会员过期（在积分检查之前！）
     const now = new Date()
-    if (userCredits.membership_expires_at) {
+    let membershipExpired = false
+    if (userCredits && userCredits.membership_expires_at && userCredits.current_membership !== '普通会员') {
       const expireDate = new Date(userCredits.membership_expires_at)
       if (expireDate <= now) {
-        await supabaseAdmin.from('user_credits').update({
-          total_credits: 15,
-          used_credits: 0,
-          current_membership: '普通会员',
-          membership_expires_at: null,
-        }).eq('user_id', user.id)
+        membershipExpired = true
+        // 付费会员过期：清零所有积分，重置为15条永久免费积分
+        console.log('⚠️ 付费会员已过期，重置积分:', {
+          user_id: user.id,
+          old_membership: userCredits.current_membership,
+          old_total: userCredits.total_credits,
+          old_used: userCredits.used_credits,
+        })
+
+        const { data: resetCredits } = await supabaseAdmin
+          .from('user_credits')
+          .update({
+            total_credits: 15,
+            used_credits: 0,
+            current_membership: '普通会员',
+            membership_expires_at: null,
+          })
+          .eq('user_id', user.id)
+          .select()
+          .single()
+
+        // 更新 userCredits 为重置后的值
+        if (resetCredits) {
+          userCredits = resetCredits
+        }
       }
+    }
+
+    // ⭐ 计算实际剩余积分（防止负数情况）
+    const actualRemainingCredits = userCredits ? Math.max(0, userCredits.total_credits - userCredits.used_credits) : 0
+
+    if (!userCredits || actualRemainingCredits < 1) {
+      // 返回带有会员到期信息的响应
+      return new Response(JSON.stringify({
+        error: '积分不足',
+        membershipExpired: membershipExpired,
+        message: membershipExpired
+          ? '您的会员已到期，积分已重置为15条。当前积分不足，请充值或稍后再试。'
+          : '积分不足，请充值后继续使用。'
+      }), {
+        status: 402,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
     // 创建或获取会话ID
@@ -211,11 +244,31 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // 扣除积分
-          await supabaseAdmin
+          // ⭐ 扣除积分（带安全检查，防止负数）
+          // 先重新获取最新积分状态，防止并发问题
+          const { data: latestCredits } = await supabaseAdmin
             .from('user_credits')
-            .update({ used_credits: userCredits.used_credits + 1 })
+            .select('*')
             .eq('user_id', user.id)
+            .single()
+
+          if (latestCredits) {
+            const currentRemaining = latestCredits.total_credits - latestCredits.used_credits
+            // 只有在剩余积分大于0时才扣减
+            if (currentRemaining > 0) {
+              await supabaseAdmin
+                .from('user_credits')
+                .update({ used_credits: latestCredits.used_credits + 1 })
+                .eq('user_id', user.id)
+            } else {
+              console.warn('⚠️ 积分不足，跳过扣减:', {
+                user_id: user.id,
+                total: latestCredits.total_credits,
+                used: latestCredits.used_credits,
+                remaining: currentRemaining
+              })
+            }
+          }
 
           // 保存消息到数据库
           if (actualSessionId) {
@@ -260,11 +313,16 @@ export async function POST(request: NextRequest) {
           }
 
           // 发送完成信号
+          // 计算正确的剩余积分（使用最新数据）
+          const finalRemaining = latestCredits
+            ? Math.max(0, latestCredits.total_credits - latestCredits.used_credits - 1)
+            : actualRemainingCredits - 1
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({
             type: 'done',
             sessionId: actualSessionId,
             conversationId: difyConversationId,
-            remainingCredits: userCredits.remaining_credits - 1,
+            remainingCredits: Math.max(0, finalRemaining), // 确保不返回负数
             roundCount: newRoundCount,
             roundWarning: roundWarning
           })}\n\n`))
