@@ -90,10 +90,51 @@ curl -X POST https://seth-blush.vercel.app/api/payment/fix-negative-credits \
   -d '{"email":"user@example.com"}'
 ```
 
+### 2025-12-05: 修复消息显示挤在一起的问题
+
+#### 问题描述
+用户重新登录后，聊天历史消息显示异常，用户消息和AI消息挤在一起，没有正确分开显示。
+
+#### 问题根源
+消息保存时使用的是用户权限的 Supabase 客户端 (`supabase`)，而不是管理员客户端 (`supabaseAdmin`)。如果 RLS 策略有限制，可能导致 `message_type` 字段没有被正确保存。
+
+#### 修复方案
+
+**1. 修改 `app/api/chat-stream/route.ts`**
+- 使用 `supabaseAdmin` 保存消息，绕过 RLS 策略
+- 添加错误日志记录消息保存状态
+
+**2. 修改 `components/ChatInterface.tsx`**
+- 在加载历史消息时添加消息类型验证
+- 如果 `message_type` 缺失，根据消息索引推断类型（偶数=user，奇数=assistant）
+- 添加调试日志
+
+**3. 新增 `app/api/admin/fix-message-types/route.ts`**
+- GET: 检查消息类型分布和问题消息
+- POST: 自动修复缺失或错误的消息类型
+
+**4. 新增 `app/api/admin/debug-messages/route.ts`**
+- 诊断消息数据的存储格式
+
+#### API 使用说明
+
+**检查消息类型问题**:
+```bash
+curl https://seth-blush.vercel.app/api/admin/fix-message-types
+```
+
+**修复所有消息类型**:
+```bash
+curl -X POST https://seth-blush.vercel.app/api/admin/fix-message-types \
+  -H "Content-Type: application/json" \
+  -d '{"fix_all": true}'
+```
+
 ## 待办事项
 - [ ] 考虑添加数据库级别的触发器来处理会员到期
 - [ ] 添加定时任务定期检查和修复负积分用户
 - [ ] 监控日志中的积分异常情况
+- [ ] 检查 RLS 策略是否正确配置 chat_messages 表
 
 ## 联系方式
 - 客服微信: 15692903143
