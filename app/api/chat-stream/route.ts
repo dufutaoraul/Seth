@@ -270,9 +270,9 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // 保存消息到数据库
+          // ⭐ 保存消息到数据库（使用管理员客户端绕过 RLS，确保 message_type 正确保存）
           if (actualSessionId) {
-            await supabase.from('chat_messages').insert([
+            const { error: insertError } = await supabaseAdmin.from('chat_messages').insert([
               {
                 session_id: actualSessionId,
                 user_id: user.id,
@@ -288,6 +288,12 @@ export async function POST(request: NextRequest) {
                 dify_message_id: difyMessageId,
               },
             ])
+
+            if (insertError) {
+              console.error('⚠️ 保存消息失败:', insertError)
+            } else {
+              console.log('✅ 消息保存成功: user + assistant')
+            }
           }
 
           // ⭐ 计算新的轮数（加上刚刚发送的这一轮）

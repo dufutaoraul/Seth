@@ -154,7 +154,24 @@ export default function ChatInterface({ user, userCredits, sessions: initialSess
       }
 
       const data = await response.json()
-      setMessages(data.messages || [])
+
+      // ⭐ 验证消息类型并修复潜在问题
+      const validatedMessages = (data.messages || []).map((msg: any, index: number) => {
+        // 如果 message_type 缺失或无效，尝试推断
+        if (!msg.message_type || (msg.message_type !== 'user' && msg.message_type !== 'assistant')) {
+          console.warn(`⚠️ 消息 ${index} 缺少有效的 message_type:`, msg.id, '推断类型...')
+          // 根据索引推断：偶数索引为用户消息，奇数索引为助手消息
+          msg.message_type = index % 2 === 0 ? 'user' : 'assistant'
+        }
+        return msg
+      })
+
+      console.log('📨 加载消息:', validatedMessages.length, '条')
+      validatedMessages.forEach((m: any, i: number) => {
+        console.log(`  ${i}: [${m.message_type}] ${m.content?.substring(0, 30)}...`)
+      })
+
+      setMessages(validatedMessages)
     } catch (error: any) {
       console.error('加载聊天历史失败:', error)
       toast.error(error.message || '加载聊天历史失败')
