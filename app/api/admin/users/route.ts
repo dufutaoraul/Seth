@@ -53,14 +53,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ users: [] })
     }
 
-    // 获取所有用户的积分信息
+    // 获取所有用户的积分信息（按更新时间降序，确保获取最新记录）
     const { data: allCredits } = await supabaseAdmin
       .from('user_credits')
       .select('*')
+      .order('updated_at', { ascending: false })
 
     // 合并用户信息和积分信息
+    // 使用 Map 去重，确保每个用户只取最新的一条记录
+    const creditsMap = new Map()
+    allCredits?.forEach(c => {
+      if (!creditsMap.has(c.user_id)) {
+        creditsMap.set(c.user_id, c)
+      }
+    })
+
     const userInfoList = allAuthUsers.map(user => {
-      const credits = allCredits?.find(c => c.user_id === user.id)
+      const credits = creditsMap.get(user.id)
 
       if (!credits) {
         return {
@@ -97,13 +106,16 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // 计算剩余积分（使用计算值而非数据库存储值，确保准确）
+      const calculatedRemaining = credits.total_credits - credits.used_credits
+
       return {
         user_id: user.id,
         email: user.email,
         current_membership: credits.current_membership,
         total_credits: credits.total_credits,
         used_credits: credits.used_credits,
-        remaining_credits: credits.remaining_credits,
+        remaining_credits: calculatedRemaining, // 使用计算值
         membership_expires_at: credits.membership_expires_at,
         created_at: credits.created_at,
         updated_at: credits.updated_at,
